@@ -1,6 +1,6 @@
 # Gas Meter Reader
 
-I started from David Padbury's [Power Meter Reader](https://github.com/davidpadbury/power-meter-reader) but made fairly extensive modifications to get it to read my gas meter. My gas company is National Grid in Newton, MA.
+I started from David Padbury's [Power Meter Reader](https://github.com/davidpadbury/power-meter-reader) but made fairly extensive modifications to get it to read my gas meter. My gas company is National Grid in Hopkinton, MA.
 
 Steps:
 1. Crop down to the meaningful dials on my meter. The crop is specific to my meter and camera position.
@@ -14,10 +14,7 @@ I kept most of the "dodgy Python" code from the upstream project because it work
 
 # Hardware
 
-I am using a nearly-antique USB webcam, with a max resolution of 1280x1024. It can't focus close enough so I attached a +6-diopter filter in front of the lens.
-For lighting, the meter is rather annoying because its case is highly reflective and slightly curved, and the needles inside are shiny black plastic as well. So reflections are a real issue. I used a pair of gooseneck USB LED lights, two of them to avoid harsh shadows. I also needed to add a baffle to prevent bad reflections from room light and a basement window.
-
-I attached a 4-port USB hub and the camera to a stick of wood suspended from a ceiling joist in the basement. So the whole thing is low (USB) voltage and does not actually touch the meter in any way.
+I am using a Wyze v3 USB webcam.   It would not focus close enough so I followed the youtube instructions (https://www.youtube.com/watch?v=PnqDFVH_lfU&t=367s) and was able to adjust the lense.
 
 # data errors
 Anecdotally, the occasional errors seem to be down to the size & position of the detected circles. So, do some things to combat:
