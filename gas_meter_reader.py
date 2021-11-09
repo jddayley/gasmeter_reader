@@ -182,7 +182,7 @@ def get_circles(original, sample):
     write_debug(original, "frame", sample)
 
     #area = [400, 700,350, 96+1020+200]
-    area = [400, 400, 1300, 710] # x1, y1, x2, y2
+    area = [500, 300, 1400, 610] # x1, y1, x2, y2
     #area = [418, 20, 418+1018, 20+391] # x1, y1, x2, y2
 
     crop = original[area[1]:area[3], area[0]:area[2]].copy()
