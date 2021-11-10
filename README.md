@@ -10,11 +10,10 @@ Steps:
 5. Detect the angle of the dials by brute-force looking for the cleanest line (fewest edges) from the center to the edge of the dial. The needles are too stubby to use line detection for this purpose.
 6. Read the final dial fractionally. The final dial's integer represents 1000 cu. ft. of gas which is not a not very fine grained.
 
-I kept most of the "dodgy Python" code from the upstream project because it works, and my own Python skills are not much better.
 
 # Hardware
 
-I am using a Wyze v3 USB webcam.   It would not focus close enough so I followed the youtube instructions (https://www.youtube.com/watch?v=PnqDFVH_lfU&t=367s) and was able to adjust the lense.
+I am using a Wyze v3 USB webcam.   It would not focus close enough so I followed the youtube instructions that allowed me  (https://www.youtube.com/watch?v=PnqDFVH_lfU&t=367s) to adjust the lense and focus on the gas meter.
 
 # data errors
 Anecdotally, the occasional errors seem to be down to the size & position of the detected circles. So, do some things to combat:
@@ -23,5 +22,5 @@ Anecdotally, the occasional errors seem to be down to the size & position of the
 1. Use that center & radius for analysis of all frames
 1. Take the median of each digit (and the fraction) as computed for each frame
 
-Medians have helped, but I am still getting some errors. I think I need to abandon using Canny, and instead threshold the meter image and look for the angle with the least number of bright pixels along the line.
--> So far this seems to be working better.
+# Next steps
+I am working on controlled environment.  I purchased a metal enclosure and led lighting.  This will elimate the data errors and improve the reliability. 
