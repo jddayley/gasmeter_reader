@@ -1,6 +1,6 @@
 # Gas Meter Reader
 
-I started from David Padbury's [Power Meter Reader](https://github.com/davidpadbury/power-meter-reader) but made fairly extensive modifications to get it to read my gas meter. My gas company is National Grid in Hopkinton, MA.
+I started from David Padbury's [Power Meter Reader](https://github.com/davidpadbury/power-meter-reader) but made fairly extensive modifications to get it to read my gas meter. My gas company is Eversource in Hopkinton, MA.
 
 Steps:
 1. Crop down to the meaningful dials on my meter. The crop is specific to my meter and camera position.
