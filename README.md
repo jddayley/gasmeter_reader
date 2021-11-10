@@ -23,4 +23,4 @@ Anecdotally, the occasional errors seem to be down to the size & position of the
 1. Take the median of each digit (and the fraction) as computed for each frame
 
 # Next steps
-I am working on controlled environment.  I purchased a metal enclosure and led lighting.  This will elimate the data errors and improve the reliability. 
+I am working on a controlled environment.  I purchased a metal enclosure and led lighting.  This will elimate the data errors and improve the reliability. 
