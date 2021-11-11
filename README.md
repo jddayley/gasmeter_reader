@@ -3,10 +3,10 @@
 I started from David Padbury's [Power Meter Reader](https://github.com/davidpadbury/power-meter-reader) but made fairly extensive modifications to get it to read my gas meter. My gas company is Eversource in Hopkinton, MA.
 
 Steps:
-1. Crop down to the meaningful dials on my meter. The crop is specific to my meter and camera position.
+1. Crop down to the meaningful dials on my meter. The crop is specific to my meter and camera position.  This can be changed in gas_meter_read.py at line 185.
 2. Run an aggressive normalization to squash some blacks & whites
-3. Use HoughCircles to find the dials, like the original
-4. Use Canny to do edge detection on a slightly blurred image, like the original
+3. Use HoughCircles to find the dials
+4. Use Canny to do edge detection on a slightly blurred image
 5. Detect the angle of the dials by brute-force looking for the cleanest line (fewest edges) from the center to the edge of the dial. The needles are too stubby to use line detection for this purpose.
 6. Read the final dial fractionally. The final dial's integer represents 1000 cu. ft. of gas which is not a not very fine grained.
 
