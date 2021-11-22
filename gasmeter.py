@@ -15,6 +15,7 @@ import gas_meter_reader
 CONNECTED = False # MQTT connected
 RANGEFILE = 'expected_range.json'
 
+
 def on_connect(client, userdata, flags, code):
     """Connect completion for Paho"""
     _ = client
@@ -110,8 +111,10 @@ def connect_mqtt():
 
     broker_address = "localhost"
     port = 1883
-
-    client = mqttClient.Client("GasMeter")    #create new instance
+    timeId =  datetime.now().strftime("%H:%M:%S")
+    clientId ="dev_gas_meter_" + timeId
+    print(clientId)
+    client = mqttClient.Client("GasMeter", clientId)    #create new instance
     client.on_connect = on_connect   
     client.username_pw_set("jddayley", "java")         #attach function to callback
     client.connect("192.168.0.116", port=1883) #connect to broker
@@ -127,7 +130,7 @@ def get_frames(num_frames):
     frames = []
 
     cap = cv2.VideoCapture("rtsp://jddayley:java@192.168.0.227/live", cv2.CAP_FFMPEG)
-    print ("HERE") 
+    print ("Connected to Wyze v3") 
     #cap = cv2.VideoCapture(0)
     cap.set(3, 1280)
     cap.set(4, 1024)
@@ -144,14 +147,18 @@ def get_circles(frames):
     circles_list = []
     images_list = []
     for sample, frame in enumerate(frames):
-        img, circles = gas_meter_reader.get_circles(frame, sample)
-        if circles is None:
-            continue
-        sorted_circles = sorted(circles, key=lambda circle: circle[0])
-        #print("Circles: %s" % str(sorted_circles))
-        if len(sorted_circles) == 4:
-            circles_list.append(sorted_circles)
-            images_list.append(img)
+        try:
+            img, circles = gas_meter_reader.get_circles(frame, sample)
+            if circles is None:
+                continue
+            sorted_circles = sorted(circles, key=lambda circle: circle[0])
+            #print("Circles: %s" % str(sorted_circles))
+            if len(sorted_circles) == 4:
+                circles_list.append(sorted_circles)
+                images_list.append(img)
+        except IndexError:
+            print ("Error - Bad Index")
+            circles = None
     if not circles_list:
         print("Could not get any circles!")
         circles = None

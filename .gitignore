@@ -1,2 +1,3 @@
 output/
 expected_range.json
+.DS_Store

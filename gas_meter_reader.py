@@ -182,7 +182,7 @@ def get_circles(original, sample):
     write_debug(original, "frame", sample)
 
     #area = [400, 700,350, 96+1020+200]
-    area = [500, 300, 1400, 610] # x1, y1, x2, y2
+    area = [350, 200, 1600, 700] # x1, y1, x2, y2
     #area = [418, 20, 418+1018, 20+391] # x1, y1, x2, y2
 
     crop = original[area[1]:area[3], area[0]:area[2]].copy()
@@ -204,7 +204,7 @@ def get_circles(original, sample):
 def process(crop, circles, sample):
     """Process a captured image"""
     prev_value = None
-    dials = np.uint16(np.around(circles))
+    dials = np.uint16(np.around(circles)) 
 
     sorted_dials = sorted(dials, key=lambda dial: dial[0])
     result = []
