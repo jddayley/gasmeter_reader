@@ -1,3 +1,1 @@
-docker build -t gasmeter . 
-#TEST IT
-#docker run -it --rm --name gasmeter gasmeter     
+docker stop gasmeter; docker rm gasmeter;docker build -t gasmeter .;docker run -d --name=gasmeter -it gasmeter python gasmeter.py 2>&1

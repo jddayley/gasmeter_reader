@@ -70,9 +70,12 @@ def read_rangefile(filename):
     return expected_range
 
 def adjust_range(expected_range, reading):
+    print ( "Range: " + str(expected_range[1]) + " ; " + str(expected_range[0]) )
+    print ('Reading: ' + str(reading))
     """Adjust reading to be in range, and compute new range if needed"""
     if expected_range:
         delta = expected_range[1] - expected_range[0]
+        print ( "Delta: " + str(delta) )
         while reading > expected_range[1]:
             reading = reading - delta
             print("Adjust downward to %s" % str(reading))
@@ -80,6 +83,7 @@ def adjust_range(expected_range, reading):
             reading = reading + delta
             print("Adjust upward to %s" % str(reading))
     mid = round(reading/500.0) * 500.0
+    print ("Mid: " + str(mid))
     new_range = [mid - 1000, mid + 1000]
     return (new_range, reading)
 
@@ -87,7 +91,11 @@ def publish_result(client, reading, last_reading, now):
     """Write result to MQTT or save debug output"""
     # Round to nearest 0.2
     rounded = round(reading * 5.0) / 5.0
+    print ("Rounded: "+  str(rounded))
+    print("Last Reading: " + str(last_reading))
+    
     if last_reading and abs(last_reading - rounded) > 1.0:
+        print("Bad Reading: " + str((last_reading and abs(last_reading - rounded) > 1.0)))
         bad_reading = str(round(float(rounded), 1))
         print("Rejecting bad reading %s" % bad_reading)
         debdir = 'output-%s' % bad_reading
