@@ -60,7 +60,9 @@ def get_average_circles(in_vals, mean=False):
     return result
 
 def read_rangefile(filename):
-    """ Read range from file, if present"""
+    """ Read range from file, if present
+        Add last reading to it.
+    """
     try:
         rangefile = open(filename)
         expected_range = json.load(rangefile)
@@ -73,6 +75,14 @@ def adjust_range(expected_range, reading):
     print ( "Range: " + str(expected_range[1]) + " ; " + str(expected_range[0]) )
     print ('Reading: ' + str(reading))
     """Adjust reading to be in range, and compute new range if needed"""
+    """
+    Approach: 
+    - Take current reading and ensure it is less than 100 from current reading.   
+    -   Previous Reading = Current Reading.
+    - Else
+    -  Are the last 3 digits less than 100.   
+    -  Use the 3 digits and ignore the first digit.
+    """
     if expected_range:
         delta = expected_range[1] - expected_range[0]
         print ( "Delta: " + str(delta) )
@@ -175,14 +185,18 @@ def get_circles(frames):
     return (circles, images_list)
 
 def main(argv):
-    """Entry point"""
+    """Entry point,  Allow to define an inital reading"""
     _ = argv
-
+    if len(sys.argv) > 1:
+        last_reading = sys.argv[1]
+    else:
+        last_reading = None
+    print (argv)
     client = connect_mqtt()
 
     expected_range = read_rangefile(RANGEFILE)
 
-    last_reading = None
+    
     # at 5 minute readings, that's an hour
     circle_history = collections.deque(maxlen=12)
     while True:

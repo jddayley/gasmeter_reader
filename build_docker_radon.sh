@@ -1,0 +1,1 @@
+docker stop radonmeter; docker rm radonmeter;docker build -t radonmeter .;docker run --cap-add=SYS_ADMIN --cap-add=NET_ADMIN  --net=host --privileged -d --name=radonmeter -it radonmeter sh radon.sh 2>&1
