@@ -1,1 +1,1 @@
-docker stop gasmeter; docker rm gasmeter;docker build -t gasmeter .;docker run -d --name=gasmeter -it gasmeter python gasmeter.py 2>&1
+docker stop gasmeter; docker rm gasmeter;docker build -t gasmeter .;docker run --restart=always -d --name=gasmeter -it gasmeter  python gasmeter.py 7084.2 >&1

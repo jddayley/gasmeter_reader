@@ -59,17 +59,7 @@ def get_average_circles(in_vals, mean=False):
 
     return result
 
-def read_rangefile(filename):
-    """ Read range from file, if present
-        Add last reading to it.
-    """
-    try:
-        rangefile = open(filename)
-        expected_range = json.load(rangefile)
-        rangefile.close()
-    except IOError:
-        expected_range = None
-    return expected_range
+
 
 def adjust_range(expected_range, reading):
     print ( "Range: " + str(expected_range[1]) + " ; " + str(expected_range[0]) )
@@ -120,7 +110,7 @@ def publish_result(client, reading, last_reading, now):
     message = {"reading": rounded,
                "timestamp": str(now)}
     print("Publish %s" % json.dumps(message))
-    client.publish("gasmeter/reading", json.dumps(message))
+    
     return rounded
 
 def connect_mqtt():
@@ -188,13 +178,14 @@ def main(argv):
     """Entry point,  Allow to define an inital reading"""
     _ = argv
     if len(sys.argv) > 1:
-        last_reading = sys.argv[1]
+        print("reading args")
+        last_reading = float(sys.argv[1])
     else:
         last_reading = None
     print (argv)
     client = connect_mqtt()
-
-    expected_range = read_rangefile(RANGEFILE)
+    err_count = 0
+    #expected_range = read_rangefile(RANGEFILE)
 
     
     # at 5 minute readings, that's an hour
@@ -202,7 +193,7 @@ def main(argv):
     while True:
         now = datetime.now()
         next_time = now + timedelta(minutes=5)
-
+        print("Last Reading: " + str(last_reading))
         frames = get_frames(10)
         print("Got %d frames" % len(frames))
 
@@ -224,20 +215,55 @@ def main(argv):
                     readings.append(output)
             reading = statistics.mean(readings)
             print("Mean reading: %s" % str(reading))
-
-            new_expected_range, reading = adjust_range(expected_range, reading)
-            if new_expected_range != expected_range:
-                expected_range = new_expected_range
-                with open(RANGEFILE, 'w') as rangefile:
-                    json.dump(expected_range, rangefile)
-
-            last_reading = publish_result(client, reading, last_reading, now)
+            rounded = round(reading * 5.0) / 5.0
+            
+            # new_expected_range, reading = adjust_range(expected_range, reading)
+            # if new_expected_range != expected_range:
+            #     expected_range = new_expected_range
+            #     with open(RANGEFILE, 'w') as rangefile:
+            #         json.dump(expected_range, rangefile)
+            if last_reading is None:
+                print("First Time")
+                last_reading = rounded
+            elif rounded < last_reading:
+                print("*BAD READING* Reading too low")
+                last_reading, rounded = error_check(last_reading, rounded)
+            else:
+                print("Good - Reading is increasing %s > %s" %
+                            (str(last_reading), str(rounded)))
+                last_reading, rounded = error_check(last_reading, rounded)
+            print ("Rounded: "+  str(rounded))
+            print("Last Reading: " + str(last_reading))
+            message = {"reading": rounded,
+                        "timestamp": str(now)}
+            client.publish("gasmeter/reading", json.dumps(message))
+            print("Published: " + str(last_reading))
+            #last_reading = publish_result(client, reading, last_reading, now)
         else:
             print("Unable to read frames!")
 
         while datetime.now() < next_time:
             time.sleep(max(timedelta(seconds=0.1),
                            (next_time - datetime.now())/2).total_seconds())
+
+def error_check(last_reading, rounded):
+    alterreading = str(last_reading)[:1] + str(rounded)[1:]
+    print("It may alter the first digit: " + alterreading)
+    if (rounded > last_reading) and ((rounded -last_reading) < 100):
+        print("Good One. %s > %s" %
+                    (str(last_reading), str(rounded)))
+        last_reading = rounded
+    elif  ((float(alterreading) > last_reading) and (float(alterreading) - last_reading) < 100 ):
+        rounded = float(alterreading)
+        last_reading = rounded
+        print("Recovered  - Ignore First Digit. Take the last digits %s > %s" %
+                    (str(last_reading), str(rounded)))
+    else:
+        print("BAD READING - no recover. Reusing last higher reading %s > %s" %
+                        (str(last_reading), str(rounded)))
+        rounded = last_reading
+
+    return last_reading,rounded
 
 if __name__ == '__main__':
     main(sys.argv[1:])
