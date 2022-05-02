@@ -11,11 +11,26 @@ import collections
 import paho.mqtt.client as mqttClient
 import cv2
 import gas_meter_reader
+import mariadb
+import sys
+from datetime import datetime
 
 CONNECTED = False # MQTT connected
 RANGEFILE = 'expected_range.json'
 
-
+def getDBcon():
+    try:
+        conn = mariadb.connect(
+            user="homeassistant",
+            password="java",
+            host="192.168.0.116",
+            port=3306,
+            database="homeassistant"
+        )
+    except mariadb.Error as e:
+        print(f"Error connecting to MariaDB Platform: {e}")
+        sys.exit(1)
+    return conn
 def on_connect(client, userdata, flags, code):
     """Connect completion for Paho"""
     _ = client
@@ -61,31 +76,31 @@ def get_average_circles(in_vals, mean=False):
 
 
 
-def adjust_range(expected_range, reading):
-    print ( "Range: " + str(expected_range[1]) + " ; " + str(expected_range[0]) )
-    print ('Reading: ' + str(reading))
-    """Adjust reading to be in range, and compute new range if needed"""
-    """
-    Approach: 
-    - Take current reading and ensure it is less than 100 from current reading.   
-    -   Previous Reading = Current Reading.
-    - Else
-    -  Are the last 3 digits less than 100.   
-    -  Use the 3 digits and ignore the first digit.
-    """
-    if expected_range:
-        delta = expected_range[1] - expected_range[0]
-        print ( "Delta: " + str(delta) )
-        while reading > expected_range[1]:
-            reading = reading - delta
-            print("Adjust downward to %s" % str(reading))
-        while reading < expected_range[0]:
-            reading = reading + delta
-            print("Adjust upward to %s" % str(reading))
-    mid = round(reading/500.0) * 500.0
-    print ("Mid: " + str(mid))
-    new_range = [mid - 1000, mid + 1000]
-    return (new_range, reading)
+# def adjust_range(expected_range, reading):
+#     print ( "Range: " + str(expected_range[1]) + " ; " + str(expected_range[0]) )
+#     print ('Reading: ' + str(reading))
+#     """Adjust reading to be in range, and compute new range if needed"""
+#     """
+#     Approach: 
+#     - Take current reading and ensure it is less than 100 from current reading.   
+#     -   Previous Reading = Current Reading.
+#     - Else
+#     -  Are the last 3 digits less than 100.   
+#     -  Use the 3 digits and ignore the first digit.
+#     """
+#     if expected_range:
+#         delta = expected_range[1] - expected_range[0]
+#         print ( "Delta: " + str(delta) )
+#         while reading > expected_range[1]:
+#             reading = reading - delta
+#             print("Adjust downward to %s" % str(reading))
+#         while reading < expected_range[0]:
+#             reading = reading + delta
+#             print("Adjust upward to %s" % str(reading))
+#     mid = round(reading/500.0) * 500.0
+#     print ("Mid: " + str(mid))
+#     new_range = [mid - 1000, mid + 1000]
+#     return (new_range, reading)
 
 def publish_result(client, reading, last_reading, now):
     """Write result to MQTT or save debug output"""
@@ -130,14 +145,14 @@ def connect_mqtt():
     client.loop_start()
 
     while not CONNECTED:
-        time.sleep(0.1)
+       time.sleep(5)
     return client
 
 def get_frames(num_frames):
     """Get the number of video frames specified"""
     frames = []
 
-    cap = cv2.VideoCapture("rtsp://jddayley:java@192.168.0.227/live", cv2.CAP_FFMPEG)
+    cap = cv2.VideoCapture("rtsp://jddayley:java@192.168.0.6/live", cv2.CAP_FFMPEG)
     print ("Connected to Wyze v3") 
     #cap = cv2.VideoCapture(0)
     cap.set(3, 1280)
@@ -157,14 +172,19 @@ def get_circles(frames):
     for sample, frame in enumerate(frames):
         try:
             img, circles = gas_meter_reader.get_circles(frame, sample)
+            #print(circles)
             if circles is None:
+                print ("No Circles Found")
                 continue
             sorted_circles = sorted(circles, key=lambda circle: circle[0])
-            #print("Circles: %s" % str(sorted_circles))
+           
+            #circles_list.append(sorted_circles)
+            #images_list.append(img)
             if len(sorted_circles) == 4:
                 circles_list.append(sorted_circles)
                 images_list.append(img)
-        except IndexError:
+        except IndexError as err:
+           # print(f"Unexpected {err=}, {type(err)=}")
             print ("Error - Bad Index")
             circles = None
     if not circles_list:
@@ -181,7 +201,13 @@ def main(argv):
         print("reading args")
         last_reading = float(sys.argv[1])
     else:
-        last_reading = None
+        conn = getDBcon()
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT MAX(state) from homeassistant.states where entity_id='sensor.gas_meter' AND `state` != 'unknown' AND `state` != 'unavailable'"
+            )
+
+        last_reading = float(cur.fetchone()[0])
     print (argv)
     client = connect_mqtt()
     err_count = 0
@@ -197,7 +223,7 @@ def main(argv):
         frames = get_frames(10)
         print("Got %d frames" % len(frames))
 
-        gas_meter_reader.clear_debug()
+        #gas_meter_reader.clear_debug()
         if frames:
             circles, images_list = get_circles(frames)
             if not circles:
@@ -208,9 +234,19 @@ def main(argv):
             print("Mean history circles: %s" % str(circles))
             readings = []
             for sample, image in enumerate(images_list):
-                reading = gas_meter_reader.process(image, circles, sample)
+                try:
+                    reading = gas_meter_reader.process(image, circles, sample)
+                except TypeError:
+                    print("TypeError Exception")
+                    break
+                except AttributeError:
+                    print("AttributeError Exception") 
+                    break
+                except Exception as e:
+                    print(f"No idea what happened: {e!r}")
+                    break
                 if len(reading) == 5:
-                    print("Reading: %s" % str(reading))
+                    #print("Reading: %s" % str(reading))
                     output = gas_meter_reader.assemble_reading(reading)
                     readings.append(output)
             reading = statistics.mean(readings)
@@ -229,7 +265,7 @@ def main(argv):
                 print("*BAD READING* Reading too low")
                 last_reading, rounded = error_check(last_reading, rounded)
             else:
-                print("Good - Reading is increasing %s > %s" %
+                print("Checking: value %s rounded %s" %
                             (str(last_reading), str(rounded)))
                 last_reading, rounded = error_check(last_reading, rounded)
             print ("Rounded: "+  str(rounded))
@@ -238,6 +274,9 @@ def main(argv):
                         "timestamp": str(now)}
             client.publish("gasmeter/reading", json.dumps(message))
             print("Published: " + str(last_reading))
+            dt_string = now.strftime("%Y/%d/%m %H:%M:%S")
+            print("date and time =", dt_string)
+
             #last_reading = publish_result(client, reading, last_reading, now)
         else:
             print("Unable to read frames!")
@@ -247,14 +286,22 @@ def main(argv):
                            (next_time - datetime.now())/2).total_seconds())
 
 def error_check(last_reading, rounded):
-    alterreading = str(last_reading)[:1] + str(rounded)[1:]
-    print("It may alter the first digit: " + alterreading)
-    if (rounded > last_reading) and ((rounded -last_reading) < 100):
+    print
+    alter1digreading = str(last_reading)[:1] + str(rounded)[1:]
+    alter2digreading = str(last_reading)[:2] + str(rounded)[2:]
+    print("Remove first digit and check: " + alter1digreading)
+    print("Remove second digit and check: " + alter2digreading)
+    if (rounded > last_reading) and ((rounded -last_reading) < 20):
         print("Good One. %s > %s" %
                     (str(last_reading), str(rounded)))
         last_reading = rounded
-    elif  ((float(alterreading) > last_reading) and (float(alterreading) - last_reading) < 100 ):
-        rounded = float(alterreading)
+    elif  ((float(alter1digreading) > last_reading) and (float(alter1digreading) - last_reading) < 20 ):
+        rounded = float(alter1digreading)
+        last_reading = rounded
+        print("Recovered  - Ignore First Digit. Take the last digits %s > %s" %
+                    (str(last_reading), str(rounded)))
+    elif  ((float(alter2digreading) > last_reading) and (float(alter2digreading) - last_reading) < 10 ):
+        rounded = float(alter2digreading)
         last_reading = rounded
         print("Recovered  - Ignore First Digit. Take the last digits %s > %s" %
                     (str(last_reading), str(rounded)))
