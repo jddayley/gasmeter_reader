@@ -18,11 +18,13 @@ Steps:
 - I've enclosed everything in a Register Duck Boot. https://www.lowes.com/pd/IMPERIAL-10-in-x-6-in-x-6-in-Galvanized-Steel-Straight-Register-Duct-Boot/1000237469
 
 # data errors
-Anecdotally, the occasional errors seem to be down to the size & position of the detected circles. So, do some things to combat:
+Lighting impacts the ability to take consistent measurements.  To combat it:
 1. Take a number of consecutive frames prior to analysis (5)
-1. Compute the median of the x, y, and radius values of detected circles
-1. Use that center & radius for analysis of all frames
-1. Take the median of each digit (and the fraction) as computed for each frame
+2. Compute the median of the x, y, and radius values of detected circles
+3. Use that center & radius for analysis of all frames
+4. Ensure the value is always increasing.
+5. Remove the first and/or second digital and compare last numbers.
+6. Ensure the value has not increase too much.    
 
 # Next steps
 I am working on a controlled environment.  I purchased a metal enclosure and led lighting.  This will elimate the data errors and improve the reliability. 
