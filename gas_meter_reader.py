@@ -35,8 +35,12 @@ def clear_debug():
 
 def write_debug(img, name, sample):
     """Write image to debug directory"""
-    cv2.imwrite(f"output/{sample}-{name}.jpg", img)
-
+    # if sample is not None: 
+    #     try:
+    #         cv2.imwrite(f"/usr/src/app/output/{sample}-{name}.jpg", img)
+    #     except cv2.error as e:
+    #         print("Could not write")
+        
 def find_least_covered_angle(edges, idx, sample):
     """Find angle with the fewest pixels covered from center"""
     height, width = edges.shape[:2]
@@ -182,7 +186,7 @@ def get_circles(original, sample):
     write_debug(original, "frame", sample)
 
     #area = [400, 700,350, 96+1020+200]
-    area = [350, 200, 1600, 700] # x1, y1, x2, y2
+    area = [350, 200, 1600, 600] # x1, y1, x2, y2
     #area = [418, 20, 418+1018, 20+391] # x1, y1, x2, y2
 
     crop = original[area[1]:area[3], area[0]:area[2]].copy()
@@ -196,7 +200,9 @@ def get_circles(original, sample):
     write_debug(blurred, "blurred", sample)
 
     circles = cv2.HoughCircles(blurred, cv2.HOUGH_GRADIENT, 1, 40,
-                               np.array([]), 100, 100, 20, 300)
+                               np.array([]), 100, 95, 20, 300)
+    #print(circles)
+    
     if circles is not None:
         circles = circles.tolist()[0]
     return norm, circles
@@ -262,8 +268,7 @@ def main(argv):
     crop, circles = get_circles(original, 0)
     result = process(crop, circles, 0)
     output = assemble_reading(result)
-    print ("HERE")
-    print("%f" % output)
+    #print("%f" % output)
 
 if __name__ == '__main__':
     main(sys.argv[1:])
