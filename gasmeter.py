@@ -14,16 +14,18 @@ import gas_meter_reader
 import mariadb
 import sys
 from datetime import datetime
+from image_predict import *
 
 CONNECTED = False # MQTT connected
 RANGEFILE = 'expected_range.json'
-
+path = "/Users/ddayley/Desktop/gas/"
+#path = "/usr/src/app/"
 def getDBcon():
     try:
         conn = mariadb.connect(
-            user="homeassistant",
-            password="java",
-            host="192.168.0.116",
+            user="admin",
+            password="2beornot2be",
+            host="192.168.1.116",
             port=3306,
             database="homeassistant"
         )
@@ -102,31 +104,32 @@ def get_average_circles(in_vals, mean=False):
 #     new_range = [mid - 1000, mid + 1000]
 #     return (new_range, reading)
 
-def publish_result(client, reading, last_reading, now):
-    """Write result to MQTT or save debug output"""
-    # Round to nearest 0.2
-    rounded = round(reading * 5.0) / 5.0
-    print ("Rounded: "+  str(rounded))
-    print("Last Reading: " + str(last_reading))
+# def publish_result(client, reading, last_reading, now):
+#     """Write result to MQTT or save debug output"""
+#     # Round to nearest 0.2
+#     rounded = round(reading * 5.0) / 5.0
+#     print ("Rounded: "+  str(rounded))
+#     print("Last Reading: " + str(last_reading))
+
+#     if last_reading and abs(last_reading - rounded) > 1.0:
+#         print("Bad Reading: " + str((last_reading and abs(last_reading - rounded) > 1.0)))
+#         bad_reading = str(round(float(rounded), 1))
+#         print("Rejecting bad reading %s" % bad_reading)
+#         debdir = 'output-%s' % bad_reading
+#         if os.path.isdir('output') and not os.path.isdir(debdir):
+#             os.rename('output', debdir)
+#             os.mkdir('output')
+#         rounded = last_reading
+#     if last_reading and rounded < last_reading:
+#         print("Reusing last higher reading %s > %s" %
+#               (str(last_reading), str(rounded)))
+#         rounded = last_reading
+
+#     message = {"reading": rounded,
+#                "timestamp": str(now)}
+#     print("Publish %s" % json.dumps(message))
     
-    if last_reading and abs(last_reading - rounded) > 1.0:
-        print("Bad Reading: " + str((last_reading and abs(last_reading - rounded) > 1.0)))
-        bad_reading = str(round(float(rounded), 1))
-        print("Rejecting bad reading %s" % bad_reading)
-        debdir = 'output-%s' % bad_reading
-        if os.path.isdir('output') and not os.path.isdir(debdir):
-            os.rename('output', debdir)
-            os.mkdir('output')
-        rounded = last_reading
-    if last_reading and rounded < last_reading:
-        print("Reusing last higher reading %s > %s" %
-              (str(last_reading), str(rounded)))
-        rounded = last_reading
-    message = {"reading": rounded,
-               "timestamp": str(now)}
-    print("Publish %s" % json.dumps(message))
-    
-    return rounded
+#     return rounded
 
 def connect_mqtt():
     """Connect to MQTT"""
@@ -140,7 +143,7 @@ def connect_mqtt():
     client = mqttClient.Client("GasMeter", clientId)    #create new instance
     client.on_connect = on_connect   
     client.username_pw_set("jddayley", "java")         #attach function to callback
-    client.connect("192.168.0.116", port=1883) #connect to broker
+    client.connect("192.168.1.116", port=1883) #connect to broker
 
     client.loop_start()
 
@@ -152,7 +155,7 @@ def get_frames(num_frames):
     """Get the number of video frames specified"""
     frames = []
 
-    cap = cv2.VideoCapture("rtsp://jddayley:java@192.168.0.6/live", cv2.CAP_FFMPEG)
+    cap = cv2.VideoCapture("rtsp://jddayley:java@192.168.1.6/live", cv2.CAP_FFMPEG)
     print ("Connected to Wyze v3") 
     #cap = cv2.VideoCapture(0)
     cap.set(3, 1280)
@@ -206,8 +209,14 @@ def main(argv):
         cur.execute(
             "SELECT MAX(state) from homeassistant.states where entity_id='sensor.gas_meter' AND `state` != 'unknown' AND `state` != 'unavailable'"
             )
+        try:
+            val = float(cur.fetchone()[0])
+            print(val)
+        except TypeError:
+            #defaul value if new db.
+            val = float(8462)
+        last_reading = val 
 
-        last_reading = float(cur.fetchone()[0])
     print (argv)
     client = connect_mqtt()
     err_count = 0
@@ -241,9 +250,11 @@ def main(argv):
                     break
                 except AttributeError:
                     print("AttributeError Exception") 
+                    readings.append(1111) 
                     break
                 except Exception as e:
                     print(f"No idea what happened: {e!r}")
+                    readings.append(1111) 
                     break
                 if len(reading) == 5:
                     #print("Reading: %s" % str(reading))
@@ -252,12 +263,6 @@ def main(argv):
             reading = statistics.mean(readings)
             print("Mean reading: %s" % str(reading))
             rounded = round(reading * 5.0) / 5.0
-            
-            # new_expected_range, reading = adjust_range(expected_range, reading)
-            # if new_expected_range != expected_range:
-            #     expected_range = new_expected_range
-            #     with open(RANGEFILE, 'w') as rangefile:
-            #         json.dump(expected_range, rangefile)
             if last_reading is None:
                 print("First Time")
                 last_reading = rounded
@@ -270,8 +275,17 @@ def main(argv):
                 last_reading, rounded = error_check(last_reading, rounded)
             print ("Rounded: "+  str(rounded))
             print("Last Reading: " + str(last_reading))
+            dial1 = classify(path + "output/0-crop-0.jpg")
+            dial2 = classify(path + "output/0-crop-1.jpg")
+            dial3 = classify(path + "output/0-crop-2.jpg")
+            dial4 = classify(path + "output/0-crop-3.jpg")
+            ML_predict = int(dial1 + dial2 + dial3 + dial4)
+            print ("ML Predict: " + str(ML_predict))
             message = {"reading": rounded,
-                        "timestamp": str(now)}
+                        "timestamp": str(now),
+                        "raw": reading, 
+                        "ML": ML_predict
+                       }
             client.publish("gasmeter/reading", json.dumps(message))
             print("Published: " + str(last_reading))
             dt_string = now.strftime("%Y/%d/%m %H:%M:%S")
@@ -291,16 +305,16 @@ def error_check(last_reading, rounded):
     alter2digreading = str(last_reading)[:2] + str(rounded)[2:]
     print("Remove first digit and check: " + alter1digreading)
     print("Remove second digit and check: " + alter2digreading)
-    if (rounded > last_reading) and ((rounded -last_reading) < 20):
+    if (rounded > last_reading) and ((rounded -last_reading) < 40):
         print("Good One. %s > %s" %
                     (str(last_reading), str(rounded)))
         last_reading = rounded
-    elif  ((float(alter1digreading) > last_reading) and (float(alter1digreading) - last_reading) < 20 ):
+    elif  ((float(alter1digreading) > last_reading) and (float(alter1digreading) - last_reading) < 10 ):
         rounded = float(alter1digreading)
         last_reading = rounded
         print("Recovered  - Ignore First Digit. Take the last digits %s > %s" %
                     (str(last_reading), str(rounded)))
-    elif  ((float(alter2digreading) > last_reading) and (float(alter2digreading) - last_reading) < 10 ):
+    elif  ((float(alter2digreading) > last_reading) and (float(alter2digreading) - last_reading) < 5 ):
         rounded = float(alter2digreading)
         last_reading = rounded
         print("Recovered  - Ignore First Digit. Take the last digits %s > %s" %

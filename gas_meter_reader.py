@@ -7,7 +7,10 @@ import os.path
 import math
 import numpy as np
 import cv2
-
+import datetime
+from image_predict import *
+path = "/Users/ddayley/Desktop/gas/"
+#path = "/usr/src/app/"
 DIALS = [
     #offset, clockwise, factor
     [0, False, 1],
@@ -32,14 +35,29 @@ def clear_debug():
     filelist = glob.glob("output/*.jpg")
     for file in filelist:
         os.remove(file)
-
+def write_image_predict(img, name, sample):
+    """Write image to debug directory"""
+    guess = "0"
+    if sample is not None: 
+       try:
+           
+           timeObj = datetime.datetime.now()
+           name = f"output/{sample}-{name}.jpg"
+           cv2.imwrite(name, img)
+           guess = classify( path + name ) 
+       except cv2.error as e:
+           print("Could not write")
+    return guess
 def write_debug(img, name, sample):
     """Write image to debug directory"""
-    # if sample is not None: 
-    #     try:
-    #         cv2.imwrite(f"/usr/src/app/output/{sample}-{name}.jpg", img)
-    #     except cv2.error as e:
-    #         print("Could not write")
+    if sample is not None: 
+       try:
+           timeObj = datetime.datetime.now()
+           name = f"output/{sample}-{name}{timeObj.day}{timeObj.hour}{timeObj.minute}.jpg"
+           cv2.imwrite(name, img)
+
+       except cv2.error as e:
+           print("Could not write")
         
 def find_least_covered_angle(edges, idx, sample):
     """Find angle with the fewest pixels covered from center"""
@@ -81,8 +99,8 @@ def find_least_covered_angle(edges, idx, sample):
                  (255, 255, 255), 2)
         masked = cv2.bitwise_and(trimmed, trimmed, mask=mask)
         count = cv2.countNonZero(masked)
-        if deb == idx:
-            write_debug(masked, f"masked-{idx}-{angle}-{count}", sample)
+        #if deb == idx:
+            #write_debug(masked, f"masked-{idx}-{angle}-{count}", sample)
         if count < least_count:
             least_count = count
             least_angle = angle
@@ -133,7 +151,9 @@ def read_dial(config, idx, img, sample, prev_value):
 
     height, width = img.shape[:2]
     center = [width / 2, height / 2]
-
+    write_debug(img, f"crop-{idx}", sample)
+    guess = write_image_predict(img, f"crop-{idx}", sample)
+    
     offset_img = img.copy()
     origin_point = [center[0], 0]
     offset_point = [
@@ -144,7 +164,7 @@ def read_dial(config, idx, img, sample, prev_value):
     ]
     cv2.line(offset_img, (int(center[0]), int(center[1])),
              (int(offset_point[0]), int(offset_point[1])), (0, 255, 0), 2)
-    write_debug(offset_img, f"dial-{idx}", sample)
+    #write_debug(offset_img, f"dial-{idx}", sample)
 
     if len(img.shape) == 3: # color
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -156,7 +176,7 @@ def read_dial(config, idx, img, sample, prev_value):
 
     #edges = cv2.Canny(blurred, 50, 200)
     ret, thresh = cv2.threshold(gray, 80, 255, cv2.THRESH_BINARY)
-    write_debug(thresh, f"thresh-{idx}", sample)
+    #write_debug(thresh, f"thresh-{idx}", sample)
 
     angle = find_least_covered_angle(thresh, idx, sample) + offset
     angle_r = angle * (np.pi / 180)
@@ -171,7 +191,7 @@ def read_dial(config, idx, img, sample, prev_value):
         color_img = img.copy()
     cv2.line(color_img, (int(center[0]), int(center[1])),
              (int(angle_point[0]), int(angle_point[1])), (0, 0, 255), 2)
-    write_debug(color_img, f"angle-{idx}", sample)
+    #write_debug(color_img, f"angle-{idx}", sample)
 
     if angle < 0:
         angle = 360 + angle
@@ -183,7 +203,7 @@ def read_dial(config, idx, img, sample, prev_value):
 
 def get_circles(original, sample):
     """Find circles in captured image"""
-    write_debug(original, "frame", sample)
+    #write_debug(original, "frame", sample)
 
     #area = [400, 700,350, 96+1020+200]
     area = [350, 200, 1600, 600] # x1, y1, x2, y2
@@ -194,10 +214,10 @@ def get_circles(original, sample):
     gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
 
     norm = black_white_points(gray)
-    write_debug(norm, "norm", sample)
+    #write_debug(norm, "norm", sample)
 
     blurred = cv2.GaussianBlur(norm, (5, 5), 0)
-    write_debug(blurred, "blurred", sample)
+    #write_debug(blurred, "blurred", sample)
 
     circles = cv2.HoughCircles(blurred, cv2.HOUGH_GRADIENT, 1, 40,
                                np.array([]), 100, 95, 20, 300)
@@ -237,7 +257,7 @@ def process(crop, circles, sample):
         # draw the center of the circle
         cv2.circle(color_crop, (x_pos, y_pos), 2, (0, 0, 255), 3)
 
-    write_debug(color_crop, "circles", sample)
+    #write_debug(color_crop, "circles", sample)
 
     remainder = (firstangle/360.0)*10 - firstvalue
     result.reverse()
@@ -260,13 +280,14 @@ def main(argv):
     filename = argv[0] if len(sys.argv) > 0 else ""
 
     if not os.path.exists(filename):
-        print("Usage: python3 power-meter-reader.py <image>")
+        print("Usage: python3 gas-meter-reader.py <image>")
         sys.exit(1)
 
     original = cv2.imread(filename)
 
     crop, circles = get_circles(original, 0)
     result = process(crop, circles, 0)
+    print("Debug-Predict: " + result)
     output = assemble_reading(result)
     #print("%f" % output)
 
