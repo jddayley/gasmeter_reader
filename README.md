@@ -1,7 +1,7 @@
 # Gas Meter Reader
 
 ## Background
-This project is an enhanced adaptation of David Padbury's Power Meter Reader, specifically designed to read gas meters for Eversource in Hopkinton, MA. Initially using HoughCircles for feature detection, the project has evolved to incorporate a machine learning model, significantly improving accuracy. The process involves cropping to the meter's dials, normalization, and advanced image processing techniques.
+This project is an enhanced adaptation of David Padbury's Power Meter Reader, specifically designed to read gas meters provided by Eversource in Hopkinton, MA. Initially using HoughCircles for feature detection, the project has evolved to incorporate a machine learning model, significantly improving accuracy. The process involves cropping to the meter's dials, normalization, and advanced image processing techniques.
 
 ## Files and Their Functionalities
 
