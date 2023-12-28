@@ -51,4 +51,4 @@ Deploy the trained model using `gasmeter.py` and `gas_meter_reader.py` for actua
 - **Correction Method**: Corrects discrepancies by replacing the first digit with the first digit from the previous reading and reassessing. This process is repeated for the second and third digits as needed.
 
 ## Next Steps
-- **Creating a Controlled Environment**: Aiming to enhance reliability by constructing a controlled environment using a metal enclosure and LED lighting, which should mitigate data errors significantly.
+- **Using LLMs**: Using LLM to assist in Labeling and Prediction. 
