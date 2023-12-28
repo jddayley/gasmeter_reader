@@ -1,5 +1,5 @@
 # Gas Meter Reader
- <img src="/images/image001.png" alt="Dial 1" title="Dial 1" width="5%">
+ <img src="/images/image001.png" alt="Dial 1" title="Dial 1" width="50%">
 ## Background
 This project is an enhanced adaptation of David Padbury's Power Meter Reader, specifically designed to read gas meters provided by Eversource in Hopkinton, MA. Initially using HoughCircles for feature detection, the project has evolved to incorporate a machine learning model, significantly improving accuracy. The process involves cropping to the meter's dials, normalization, and advanced image processing techniques.
 
