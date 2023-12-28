@@ -6,31 +6,31 @@ This project adapts David Padbury's Power Meter Reader to read gas meters, speci
 
 Files and Their Functionalities
 
-image_class_gpt.py
+# image_class_gpt.py
 Used for image classification.
 Sets up the device for image processing with torchvision, torch, and transforms.
-image_predict.py
+# image_predict.py
 Handles the prediction for image classification.
 Utilizes torchvision, torch, and PIL for image classification.
-gasmeter.py
+# gasmeter.py
 Reads the gas meter and publishes readings using MQTT.
 Integrates with systems for data publishing using sys, os, json, etc.
-gas_meter_reader.py
+# gas_meter_reader.py
 Main script for reading the gas meter using machine vision.
 Employs image processing and machine vision techniques.
-globals.py
+# globals.py
 Manages global variables for the project.
 Defines variables like flags, error thresholds, sleep times, and dataset paths.
-threshtransform.py
+# threshtransform.py
 Implements a threshold transform for images.
 Contains ThresholdTransform class for image thresholding operations.
 Usage
 
-Training the Model
+# Training the Model
 Set Up Global Variables: Before training, configure the necessary parameters in globals.py. This includes the path to your training dataset, error thresholds, and other settings crucial for training.
-Training the Model: Use the image_class_gpt.py and image_predict.py scripts to train the model. The training process involves using images from the specified dataset path in globals.py. Ensure that the images used for training accurately represent the meter readings you intend to recognize.
+# Training the Model: Use the image_class_gpt.py and image_predict.py scripts to train the model. The training process involves using images from the specified dataset path in globals.py. Ensure that the images used for training accurately represent the meter readings you intend to recognize.
 Model Training Considerations: During training, the model will learn to recognize the specific characteristics of your gas meter based on the provided images. It's important that the images cover a range of different readings and lighting conditions to ensure robustness.
-Deployment
+# Deployment
 After training, deploy the model using gasmeter.py and gas_meter_reader.py for actual meter reading and data publishing. The system will use the trained model to interpret gas meter readings and, if configured, publish them using MQTT.
 
 # Hardware
