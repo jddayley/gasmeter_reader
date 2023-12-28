@@ -6,24 +6,24 @@ This project adapts David Padbury's Power Meter Reader to read gas meters, speci
 
 Files and Their Functionalities
 
-# image_class_gpt.py
-Used for image classification.
-Sets up the device for image processing with torchvision, torch, and transforms.
-# image_predict.py
-Handles the prediction for image classification.
-Utilizes torchvision, torch, and PIL for image classification.
-# gasmeter.py
-Reads the gas meter and publishes readings using MQTT.
-Integrates with systems for data publishing using sys, os, json, etc.
-# gas_meter_reader.py
-Main script for reading the gas meter using machine vision.
-Employs image processing and machine vision techniques.
-# globals.py
-Manages global variables for the project.
-Defines variables like flags, error thresholds, sleep times, and dataset paths.
-# threshtransform.py
-Implements a threshold transform for images.
-Contains ThresholdTransform class for image thresholding operations.
+  # image_class_gpt.py
+  Used for image classification.
+  Sets up the device for image processing with torchvision, torch, and transforms.
+  # image_predict.py
+  Handles the prediction for image classification.
+  Utilizes torchvision, torch, and PIL for image classification.
+  # gasmeter.py
+  Reads the gas meter and publishes readings using MQTT.
+  Integrates with systems for data publishing using sys, os, json, etc.
+  # gas_meter_reader.py
+  Main script for reading the gas meter using machine vision.
+  Employs image processing and machine vision techniques.
+  # globals.py
+  Manages global variables for the project.
+  Defines variables like flags, error thresholds, sleep times, and dataset paths.
+  # threshtransform.py
+  Implements a threshold transform for images.
+  Contains ThresholdTransform class for image thresholding operations.
 Usage
 
 # Training the Model: 
