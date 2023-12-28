@@ -16,6 +16,8 @@ This project is an enhanced adaptation of David Padbury's Power Meter Reader, sp
 ### gasmeter.py
 - **Purpose**: Reads the gas meter and publishes readings via MQTT.
 - **Features**: Integrates with data publishing systems, employing sys, os, json, etc.
+- **Output**: ![Alt text](URL_of_the_image "Optional title")
+
 
 ### gas_meter_reader.py
 - **Purpose**: Primary script for reading the gas meter using machine vision.
