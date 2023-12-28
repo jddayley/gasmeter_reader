@@ -1,15 +1,37 @@
 # Gas Meter Reader
 
-I started from David Padbury's [Power Meter Reader](https://github.com/davidpadbury/power-meter-reader) but made fairly extensive modifications to get it to read my gas meter. My gas company is Eversource in Hopkinton, MA.
+Background
 
-Steps:
-1. Crop down to the meaningful dials on my meter. The crop is specific to my meter and camera position.  This can be changed in gas_meter_read.py at line 185.
-2. Run an aggressive normalization to squash some blacks & whites
-3. Use HoughCircles to find the dials
-4. Use Canny to do edge detection on a slightly blurred image
-5. Detect the angle of the dials by brute-force looking for the cleanest line (fewest edges) from the center to the edge of the dial. The needles are too stubby to use line detection for this purpose.
-6. Read the final dial fractionally. The final dial's integer represents 1000 cu. ft. of gas which is not a not very fine grained.
+This project adapts David Padbury's Power Meter Reader to read gas meters, specifically targeting Eversource in Hopkinton, MA. It involves cropping to the meter's dials, normalization, and feature detection using HoughCircles.
 
+Files and Their Functionalities
+
+image_class_gpt.py
+Used for image classification.
+Sets up the device for image processing with torchvision, torch, and transforms.
+image_predict.py
+Handles the prediction for image classification.
+Utilizes torchvision, torch, and PIL for image classification.
+gasmeter.py
+Reads the gas meter and publishes readings using MQTT.
+Integrates with systems for data publishing using sys, os, json, etc.
+gas_meter_reader.py
+Main script for reading the gas meter using machine vision.
+Employs image processing and machine vision techniques.
+globals.py
+Manages global variables for the project.
+Defines variables like flags, error thresholds, sleep times, and dataset paths.
+threshtransform.py
+Implements a threshold transform for images.
+Contains ThresholdTransform class for image thresholding operations.
+Usage
+
+Training the Model
+Set Up Global Variables: Before training, configure the necessary parameters in globals.py. This includes the path to your training dataset, error thresholds, and other settings crucial for training.
+Training the Model: Use the image_class_gpt.py and image_predict.py scripts to train the model. The training process involves using images from the specified dataset path in globals.py. Ensure that the images used for training accurately represent the meter readings you intend to recognize.
+Model Training Considerations: During training, the model will learn to recognize the specific characteristics of your gas meter based on the provided images. It's important that the images cover a range of different readings and lighting conditions to ensure robustness.
+Deployment
+After training, deploy the model using gasmeter.py and gas_meter_reader.py for actual meter reading and data publishing. The system will use the trained model to interpret gas meter readings and, if configured, publish them using MQTT.
 
 # Hardware
 
