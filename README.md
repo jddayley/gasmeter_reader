@@ -16,7 +16,14 @@ This project is an enhanced adaptation of David Padbury's Power Meter Reader, sp
 ### gasmeter.py
 - **Purpose**: Reads the gas meter and publishes readings via MQTT.
 - **Features**: Integrates with data publishing systems, employing sys, os, json, etc.
-- **Output**: (https://www.deploytodo.com/do-btn-blue.svg)
+- <p><b>Output:</b>
+  <img src="/images/0-crop-0.jpg" alt="Dial 1" title="Dial 1" width="5%">
+  <img src="/images/0-crop-1.jpg" alt="Dial 2" title="Dial 2" width="5%">
+  <img src="/images/0-crop-2.jpg" alt="Dial 3" title="Dial 3" width="5%">
+  <img src="/images/0-crop-3.jpg" alt="Dial 4" title="Dial 4" width="5%">
+</p>
+
+
 
 
 ### gas_meter_reader.py
