@@ -10,25 +10,22 @@ This project is an enhanced adaptation of David Padbury's Power Meter Reader, sp
 - **Features**: Configures the device for image processing using torchvision, torch, and transforms.
 
 ### image_predict.py
-- **Purpose**: Manages image classification predictions.
-- **Features**: Utilizes torchvision, torch, and PIL for image classification tasks.
-
+- **Purpose**: Manages the prediction process in image classification.
+- **Features**: Employs torchvision, torch, and PIL to perform image classification tasks.
+- **Output**: Processes data from gas_meter_reader, delivering four distinct predictions, one for each dial.
 ### gasmeter.py
-- **Purpose**: Reads the gas meter and publishes readings via MQTT.
-- **Features**: Integrates with data publishing systems, employing sys, os, json, etc.
+- **Purpose**: Responsible for reading the gas meter and managing the publication of these readings.
+- **Features**: Utilizes system and data handling libraries such as sys, os, and json for integration with data publishing systems.
+- **Output**: Executes the publication of meter readings using MQTT, facilitating real-time data sharing.
+### gas_meter_reader.py
+- **Purpose**: Primary script for reading the gas meter using machine vision.
+- **Features**: Implements image processing and machine vision techniques.
 - <p><b>Output:</b>
   <img src="/images/0-crop-0.jpg" alt="Dial 1" title="Dial 1" width="5%">
   <img src="/images/0-crop-1.jpg" alt="Dial 2" title="Dial 2" width="5%">
   <img src="/images/0-crop-2.jpg" alt="Dial 3" title="Dial 3" width="5%">
   <img src="/images/0-crop-3.jpg" alt="Dial 4" title="Dial 4" width="5%">
 </p>
-
-
-
-
-### gas_meter_reader.py
-- **Purpose**: Primary script for reading the gas meter using machine vision.
-- **Features**: Implements image processing and machine vision techniques.
 
 ### globals.py
 - **Purpose**: Manages global variables of the project.
