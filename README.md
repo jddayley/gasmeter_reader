@@ -26,16 +26,14 @@ Implements a threshold transform for images.
 Contains ThresholdTransform class for image thresholding operations.
 Usage
 
-# Training the Model
-Set Up Global Variables: Before training, configure the necessary parameters in globals.py. This includes the path to your training dataset, error thresholds, and other settings crucial for training.
 # Training the Model: 
+Set Up Global Variables: Before training, configure the necessary parameters in globals.py. This includes the path to your training dataset, error thresholds, and other settings crucial for training.
 Use the image_class_gpt.py and image_predict.py scripts to train the model. The training process involves using images from the specified dataset path in globals.py. Ensure that the images used for training accurately represent the meter readings you intend to recognize.
 Model Training Considerations: During training, the model will learn to recognize the specific characteristics of your gas meter based on the provided images. It's important that the images cover a range of different readings and lighting conditions to ensure robustness.
 # Deployment
 After training, deploy the model using gasmeter.py and gas_meter_reader.py for actual meter reading and data publishing. The system will use the trained model to interpret gas meter readings and, if configured, publish them using MQTT.
 
 # Hardware
-
 - I am using a Wyze v3 USB webcam.   It would not focus close enough so I followed the youtube instructions that allowed me  (https://www.youtube.com/watch?v=PnqDFVH_lfU&t=367s) to adjust the lense and focus on the gas meter.
 - For lighting, I'm using the LED lighting. https://www.amazon.com/gp/product/B072QWJRBS/ref=ppx_yo_dt_b_asin_title_o02_s00?ie=UTF8&th=1
 - I've enclosed everything in a Register Duck Boot. https://www.lowes.com/pd/IMPERIAL-10-in-x-6-in-x-6-in-Galvanized-Steel-Straight-Register-Duct-Boot/1000237469
