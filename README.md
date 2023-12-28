@@ -2,7 +2,7 @@
 
 Background
 
-This project adapts David Padbury's Power Meter Reader to read gas meters, specifically targeting Eversource in Hopkinton, MA. It involves cropping to the meter's dials, normalization, and feature detection using HoughCircles.
+This project adapts David Padbury's Power Meter Reader to read gas meters, specifically targeting Eversource in Hopkinton, MA. It involves cropping to the meter's dials, normalization, and feature detection using HoughCircles.  I've evolved it from using HoughCircles to a machine learning model to improve accuracy.  
 
 Files and Their Functionalities
 
@@ -37,15 +37,12 @@ After training, deploy the model using gasmeter.py and gas_meter_reader.py for a
 - I am using a Wyze v3 USB webcam.   It would not focus close enough so I followed the youtube instructions that allowed me  (https://www.youtube.com/watch?v=PnqDFVH_lfU&t=367s) to adjust the lense and focus on the gas meter.
 - For lighting, I'm using the LED lighting. https://www.amazon.com/gp/product/B072QWJRBS/ref=ppx_yo_dt_b_asin_title_o02_s00?ie=UTF8&th=1
 - I've enclosed everything in a Register Duck Boot. https://www.lowes.com/pd/IMPERIAL-10-in-x-6-in-x-6-in-Galvanized-Steel-Straight-Register-Duct-Boot/1000237469
+- I have created an enclosure using my 3D printer. The STL file will be included.
 
 # data errors
 Lighting impacts the ability to take consistent measurements.  To combat it:
-1. Take a number of consecutive frames prior to analysis (5)
-2. Compute the median of the x, y, and radius values of detected circles
-3. Use that center & radius for analysis of all frames
-4. Ensure the value is always increasing.
-5. Remove the first and/or second digital and compare last numbers.
-6. Ensure the value has not increase too much.    
-
+1.  I assume the gas reading is always increasing.
+2.  I assume that the meter reading should not increase by more than 3 units since the last recorded value.
+3.  I attempt to rectify this by discarding the first digit and replacing it with the first digit from the previous reading, then reassessing the value.  I repeat this on the 2nd and 3rd digit.  
 # Next steps
 I am working on a controlled environment.  I purchased a metal enclosure and led lighting.  This will elimate the data errors and improve the reliability. 
