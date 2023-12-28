@@ -51,7 +51,7 @@ Deploy the trained model using `gasmeter.py` and `gas_meter_reader.py` for actua
 - **Webcam**: Using a Wyze v3 USB webcam, modified for close focus based on a YouTube tutorial ([link](https://www.youtube.com/watch?v=PnqDFVH_lfU&t=367s)).
 - **Lighting**: Employing LED lighting ([Amazon link](https://www.amazon.com/gp/product/B072QWJRBS/ref=ppx_yo_dt_b_asin_title_o02_s00?ie=UTF8&th=1)).
 - **Enclosure**: Housed in a Register Duck Boot ([Lowes link](https://www.lowes.com/pd/IMPERIAL-10-in-x-6-in-x-6-in-Galvanized-Steel-Straight-Register-Duct-Boot/1000237469)).
-- **Custom 3D Printed Enclosure**: An enclosure created with a 3D printer. STL file to be included.
+- **Custom 3D Printed Enclosure**: An enclosure created with a 3D printer. STL file included: <A Href="images/Gas Meter Cover-5.stl">STL Download</A>
 
 ## Data Errors and Solutions
 - **Assumption of Increasing Readings**: The system assumes a continual increase in gas readings.
