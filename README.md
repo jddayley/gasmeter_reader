@@ -1,48 +1,54 @@
 # Gas Meter Reader
 
-Background
+## Background
+This project is an enhanced adaptation of David Padbury's Power Meter Reader, specifically designed to read gas meters for Eversource in Hopkinton, MA. Initially using HoughCircles for feature detection, the project has evolved to incorporate a machine learning model, significantly improving accuracy. The process involves cropping to the meter's dials, normalization, and advanced image processing techniques.
 
-This project adapts David Padbury's Power Meter Reader to read gas meters, specifically targeting Eversource in Hopkinton, MA. It involves cropping to the meter's dials, normalization, and feature detection using HoughCircles.  I've evolved it from using HoughCircles to a machine learning model to improve accuracy.  
+## Files and Their Functionalities
 
-Files and Their Functionalities
+### image_class_gpt.py
+- **Purpose**: Image classification.
+- **Features**: Configures the device for image processing using torchvision, torch, and transforms.
 
-  # image_class_gpt.py
-  Used for image classification.
-  Sets up the device for image processing with torchvision, torch, and transforms.
-  # image_predict.py
-  Handles the prediction for image classification.
-  Utilizes torchvision, torch, and PIL for image classification.
-  # gasmeter.py
-  Reads the gas meter and publishes readings using MQTT.
-  Integrates with systems for data publishing using sys, os, json, etc.
-  # gas_meter_reader.py
-  Main script for reading the gas meter using machine vision.
-  Employs image processing and machine vision techniques.
-  # globals.py
-  Manages global variables for the project.
-  Defines variables like flags, error thresholds, sleep times, and dataset paths.
-  # threshtransform.py
-  Implements a threshold transform for images.
-  Contains ThresholdTransform class for image thresholding operations.
-Usage
+### image_predict.py
+- **Purpose**: Manages image classification predictions.
+- **Features**: Utilizes torchvision, torch, and PIL for image classification tasks.
 
-# Training the Model: 
-Set Up Global Variables: Before training, configure the necessary parameters in globals.py. This includes the path to your training dataset, error thresholds, and other settings crucial for training.
-Use the image_class_gpt.py and image_predict.py scripts to train the model. The training process involves using images from the specified dataset path in globals.py. Ensure that the images used for training accurately represent the meter readings you intend to recognize.
-Model Training Considerations: During training, the model will learn to recognize the specific characteristics of your gas meter based on the provided images. It's important that the images cover a range of different readings and lighting conditions to ensure robustness.
-# Deployment
-After training, deploy the model using gasmeter.py and gas_meter_reader.py for actual meter reading and data publishing. The system will use the trained model to interpret gas meter readings and, if configured, publish them using MQTT.
+### gasmeter.py
+- **Purpose**: Reads the gas meter and publishes readings via MQTT.
+- **Features**: Integrates with data publishing systems, employing sys, os, json, etc.
 
-# Hardware
-- I am using a Wyze v3 USB webcam.   It would not focus close enough so I followed the youtube instructions that allowed me  (https://www.youtube.com/watch?v=PnqDFVH_lfU&t=367s) to adjust the lense and focus on the gas meter.
-- For lighting, I'm using the LED lighting. https://www.amazon.com/gp/product/B072QWJRBS/ref=ppx_yo_dt_b_asin_title_o02_s00?ie=UTF8&th=1
-- I've enclosed everything in a Register Duck Boot. https://www.lowes.com/pd/IMPERIAL-10-in-x-6-in-x-6-in-Galvanized-Steel-Straight-Register-Duct-Boot/1000237469
-- I have created an enclosure using my 3D printer. The STL file will be included.
+### gas_meter_reader.py
+- **Purpose**: Primary script for reading the gas meter using machine vision.
+- **Features**: Implements image processing and machine vision techniques.
 
-# data errors
-Lighting impacts the ability to take consistent measurements.  To combat it:
-1.  I assume the gas reading is always increasing.
-2.  I assume that the meter reading should not increase by more than 3 units since the last recorded value.
-3.  I attempt to rectify this by discarding the first digit and replacing it with the first digit from the previous reading, then reassessing the value.  I repeat this on the 2nd and 3rd digit.  
-# Next steps
-I am working on a controlled environment.  I purchased a metal enclosure and led lighting.  This will elimate the data errors and improve the reliability. 
+### globals.py
+- **Purpose**: Manages global variables of the project.
+- **Features**: Defines variables like flags, error thresholds, sleep times, and dataset paths.
+
+### threshtransform.py
+- **Purpose**: Applies a threshold transform to images.
+- **Features**: Includes the `ThresholdTransform` class for image thresholding.
+
+## Usage
+
+### Training the Model
+- **Setting Up Global Variables**: Configure parameters in `globals.py`, including the training dataset path, error thresholds, etc., before training.
+- **Executing Training**: Utilize `image_class_gpt.py` and `image_predict.py` for training. The training utilizes images from the dataset path in `globals.py`, ensuring they represent the meter readings accurately.
+- **Model Training Considerations**: The model learns to recognize the gas meter's specific characteristics from the provided images. It's crucial for the images to encompass various readings and lighting conditions for robustness.
+
+### Deployment
+Deploy the trained model using `gasmeter.py` and `gas_meter_reader.py` for actual meter reading and data publishing. The trained model interprets the gas meter readings and, if configured, publishes them using MQTT.
+
+## Hardware
+- **Webcam**: Using a Wyze v3 USB webcam, modified for close focus based on a YouTube tutorial ([link](https://www.youtube.com/watch?v=PnqDFVH_lfU&t=367s)).
+- **Lighting**: Employing LED lighting ([Amazon link](https://www.amazon.com/gp/product/B072QWJRBS/ref=ppx_yo_dt_b_asin_title_o02_s00?ie=UTF8&th=1)).
+- **Enclosure**: Housed in a Register Duck Boot ([Lowes link](https://www.lowes.com/pd/IMPERIAL-10-in-x-6-in-x-6-in-Galvanized-Steel-Straight-Register-Duct-Boot/1000237469)).
+- **Custom 3D Printed Enclosure**: An enclosure created with a 3D printer. STL file to be included.
+
+## Data Errors and Solutions
+- **Assumption of Increasing Readings**: The system assumes a continual increase in gas readings.
+- **Limitation on Reading Increase**: Presumes that readings should not increase by more than 3 units since the last value.
+- **Correction Method**: Corrects discrepancies by replacing the first digit with the first digit from the previous reading and reassessing. This process is repeated for the second and third digits as needed.
+
+## Next Steps
+- **Creating a Controlled Environment**: Aiming to enhance reliability by constructing a controlled environment using a metal enclosure and LED lighting, which should mitigate data errors significantly.
