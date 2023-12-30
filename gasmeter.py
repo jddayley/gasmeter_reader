@@ -275,19 +275,19 @@ def error_check(last_reading, rounded):
             rounded = float(alter1digreading)
             last_reading = rounded
             os.mkdir(camera_path + "bad/") 
-            os.rename(camera_path + "0-crop-0.jpg", camera_path + "/bad/0-crop-0.jpg" + dt_string)
+            os.rename(camera_path + "0-crop-0.jpg", camera_path + "bad/0-crop-0.jpg" + dt_string)
             print("Recovered  - Ignore First Digit. Take the last digits %s > %s" %
                         (str(last_reading), str(rounded)))
         elif  ((float(alter2digreading) > last_reading) and (float(alter2digreading) - last_reading) < error_diff ):
             rounded = float(alter2digreading)
             last_reading = rounded
-            os.rename(camera_path + "0-crop-1.jpg", camera_path + "/bad/0-crop-1.jpg"+ dt_string)
+            os.rename(camera_path + "0-crop-1.jpg", camera_path + "bad/0-crop-1.jpg"+ dt_string)
             print("Recovered  - Ignore First and Second Digit. Take the last Two digits %s > %s" %
                         (str(last_reading), str(rounded)))
         elif  ((float(alter3digreading) > last_reading) and (float(alter3digreading) - last_reading) < error_diff ):
             rounded = float(alter3digreading)
             last_reading = rounded
-            os.rename(camera_path + "0-crop-2.jpg", camera_path + "/bad/0-crop-2.jpg"+ dt_string)
+            os.rename(camera_path + "0-crop-2.jpg", camera_path + "bad/0-crop-2.jpg"+ dt_string)
             print("Recovered  - Ignore First and Second Digit. Take the last Two digits %s > %s" %
                         (str(last_reading), str(rounded)))
         else:
