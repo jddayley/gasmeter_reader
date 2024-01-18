@@ -7,13 +7,14 @@ import torch.optim as optim
 import torchvision.transforms as transforms
 from PIL import Image
 from collections import deque
-import torchvision.models as models
 
-# Assuming the DenseNet model loading function and other necessary functions from your original code
-def load_model():
-    # Load your DenseNet model here
-    # For the sake of example, I'm using a pretrained DenseNet model
-    model = models.densenet121(pretrained=True)
+# Define your pre-trained model loading function
+def load_your_model():
+    # Load and return your pre-trained model here
+    # You should include the necessary weights and configurations
+    # Example:
+    model = YourTrainedModel()
+    model.load_state_dict(torch.load('your_model_weights.pth'))
     model.eval()
     return model
 
@@ -26,7 +27,7 @@ def image_transforms(image):
     ])
     return transform(image)
 
-# Classification function using DenseNet
+# Classification function using your pre-trained model
 def classify(model, image):
     image = image_transforms(image).float()
     image = image.unsqueeze(0)
@@ -126,7 +127,7 @@ class ReplayBuffer:
 # Main training loop
 def main():
     dataset_paths = ["path/to/class1", "path/to/class2", ..., "path/to/class10"]
-    model = load_model()
+    model = load_your_model()  # Load your pre-trained model here
     env = ImageEnvironment(dataset_paths, model)
     state_dim = 3  # Number of channels in the image
     action_dim = 10  # Number of actions
