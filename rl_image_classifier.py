@@ -1,31 +1,61 @@
 import os
 import random
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import torchvision.transforms as transforms
+import torchvision.models as models
 from PIL import Image
 from collections import deque
-
+import numpy as np
 # Define your pre-trained model loading function
-def load_your_model():
-    # Load and return your pre-trained model here
-    # You should include the necessary weights and configurations
-    # Example:
-    model = YourTrainedModel()
-    model.load_state_dict(torch.load('your_model_weights.pth'))
+def load_model():
+    model = models.densenet121(pretrained=True)  # Ensure this matches the model used for training
+    num_ftrs = model.classifier.in_features
+    model.classifier = nn.Linear(num_ftrs, 10)  # Adjust the number of classes if different
+
+    # Load the state dictionary from the checkpoint, only extracting the model weights
+    checkpoint = torch.load('best_checkpoint.pth.tar')
+    if 'state_dict' in checkpoint:
+        model.load_state_dict(checkpoint['state_dict'])
+    else:
+        model.load_state_dict(checkpoint)  # If the file directly contains the state dict
+
     model.eval()
     return model
 
-# Define transforms for preprocessing images
+# Add ThresholdTransform to your transforms
+class ThresholdTransform:
+    def __init__(self, thr_255):
+        self.thr_255 = thr_255
+
+    def __call__(self, img):
+        # Convert PIL Image to NumPy array
+        img_array = np.array(img)
+        
+        # Apply threshold
+        thresholded_array = (img_array > self.thr_255) * 255  # Element-wise comparison
+
+        # Convert back to PIL Image and return
+        return Image.fromarray(thresholded_array.astype(np.uint8))
 def image_transforms(image):
     transform = transforms.Compose([
         transforms.Resize((224, 224)),
+        transforms.Grayscale(num_output_channels=3),
+        ThresholdTransform(thr_255=75),
         transforms.ToTensor(),
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ])
     return transform(image)
+
+# Define actions
+def apply_action(image, action):
+    # if action == 0:
+    #     return transforms.functional.rotate(image, 25)
+    # elif action == 1:
+    #     return transforms.functional.hflip(image)
+    # # Add other actions based on your original code or new ideas
+    return image
 
 # Classification function using your pre-trained model
 def classify(model, image):
@@ -35,14 +65,6 @@ def classify(model, image):
         output = model(image)
     _, predicted = torch.max(output.data, 1)
     return predicted.item()
-
-# Image processing actions
-def apply_action(image, action):
-    if action == 0:
-        return transforms.functional.rotate(image, 25)
-    elif action == 1:
-        return transforms.functional.hflip(image)
-    return image
 
 # Environment
 class ImageEnvironment:
@@ -96,19 +118,37 @@ class DQN(nn.Module):
         x = self.fc2(x)
         return x
 
-# DQN Agent
 class DQNAgent:
     def __init__(self, state_dim, action_dim, hidden_dim, learning_rate):
         self.model = DQN(state_dim, hidden_dim, action_dim)
+        self.action_dim = action_dim  # Store action_dim as an attribute
         self.optimizer = optim.Adam(self.model.parameters(), lr=learning_rate)
 
     def select_action(self, state):
-        # Implement action selection
-        return random.randint(0, action_dim - 1)
+        # Use self.action_dim here
+        return random.randint(0, self.action_dim - 1)
 
-    def learn(self, state, action, reward, next_state):
-        # Implement learning process
-        pass
+    def learn(self, state, action, reward, next_state, done):
+        # Convert everything to tensors
+        state = torch.FloatTensor(state)
+        next_state = torch.FloatTensor(next_state)
+        action = torch.LongTensor(action)
+        reward = torch.FloatTensor(reward)
+        done = torch.FloatTensor(done)
+
+        # Get current Q estimate
+        q_values = self.model(state)
+        current_q_value = q_values.gather(1, action.unsqueeze(1)).squeeze(1)
+
+        # Compute the expected Q values
+        next_q_values = self.model(next_state).max(1)[0]
+        expected_q_value = reward + 0.99 * next_q_values * (1 - done)  # 0.99 is the discount factor
+
+        # Compute loss and update the model
+        loss = F.mse_loss(current_q_value, expected_q_value.detach())
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
 
 # Replay Buffer
 class ReplayBuffer:
@@ -123,16 +163,34 @@ class ReplayBuffer:
 
     def __len__(self):
         return len(self.buffer)
-
+def set_device():
+    if torch.cuda.is_available():
+        print("Using CUDA GPU")
+        dev = "cuda:0"
+    elif torch.backends.mps.is_available():
+     #   print("Using Mac GPU")
+        dev = "mps"
+    else:
+        print("Using CPU")
+        dev = "cpu"
 # Main training loop
+def save_checkpoint(state, filename="best_checkpoint.pth.tar"):
+    torch.save(state, filename)
+
 def main():
-    dataset_paths = ["path/to/class1", "path/to/class2", ..., "path/to/class10"]
-    model = load_your_model()  # Load your pre-trained model here
+    dataset_paths = [f"/Users/ddayley/Desktop/gas/data/images_copy/{i}" for i in range(1, 11)]
+
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    model = load_model()  
+    model.to(device)
+
     env = ImageEnvironment(dataset_paths, model)
-    state_dim = 3  # Number of channels in the image
-    action_dim = 10  # Number of actions
+    state_dim = 3
+    action_dim = 2
     hidden_dim = 128
     learning_rate = 0.001
+    best_total_reward = -float('inf')
+
     agent = DQNAgent(state_dim, action_dim, hidden_dim, learning_rate)
     replay_buffer = ReplayBuffer(1000)
     num_episodes = 100
@@ -154,6 +212,16 @@ def main():
 
             state = next_state
             total_reward += reward
+
+        # Save the model if it has improved
+        if total_reward > best_total_reward:
+            best_total_reward = total_reward
+            save_checkpoint({
+                'episode': episode,
+                'state_dict': agent.model.state_dict(),
+                'best_total_reward': best_total_reward,
+                'optimizer': agent.optimizer.state_dict(),
+            })
 
         print(f"Episode: {episode}, Total Reward: {total_reward}, Class: {env.current_class}")
 
