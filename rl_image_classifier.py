@@ -34,7 +34,6 @@ def load_model(start_from_scratch=True, checkpoint_path='best_checkpoint.pth.tar
 
     model.eval()
     return model
-
 # Define ThresholdTransform class
 class ThresholdTransform:
     def __init__(self, thr_255):
@@ -47,7 +46,6 @@ class ThresholdTransform:
         thresholded_array = (img_array > self.thr_255) * 255
         # Convert back to PIL Image and return
         return Image.fromarray(thresholded_array.astype(np.uint8))
-
 # Define image preprocessing transforms
 def image_transforms(state):
     if isinstance(state, tuple) and len(state) == 2:
@@ -65,12 +63,6 @@ def image_transforms(state):
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ])
     return transform(image).float()
-
-
-
-
-
-
 # Define actions for your RL agent
 def apply_action(image, action):
     # Define actions (e.g., rotate, flip). Modify as per your task requirements
@@ -80,7 +72,6 @@ def apply_action(image, action):
     elif action == 1:
         return transforms.functional.hflip(image)
     return image
-
 # Classification function using pre-trained model
 def classify(model, image):
     image = image_transforms(image).float()
@@ -89,7 +80,6 @@ def classify(model, image):
         output = model(image)
     _, predicted = torch.max(output.data, 1)
     return predicted.item()
-
 # Define RL environment
 class ImageEnvironment:
     def __init__(self, dataset_paths, model):
@@ -119,8 +109,11 @@ class ImageEnvironment:
     #     # Get current state (image and class)
     #     image = self.datasets[self.current_class][self.current_image_index]
     #     return image, self.current_class
-
+   
     def step(self, action):
+         # Debug message
+        print(f"Debug - Current Class: {self.current_class}, Image Index: {self.current_image_index}, Action: {action}")
+
         # Apply action and get next state, reward, and done flag
         image = self.datasets[self.current_class][self.current_image_index]
         processed_image = apply_action(image, action)
@@ -134,8 +127,6 @@ class ImageEnvironment:
         image = self.datasets[self.current_class][self.current_image_index]
         class_label = self.current_class
         return (image, class_label)
-
-
 # Define DQN model
 class DQN(nn.Module):
     # Define your DQN architecture here
@@ -159,8 +150,6 @@ class DQN(nn.Module):
         x = torch.relu(self.fc1(x))
         x = self.fc2(x)
         return x
-
-
 # Define DQN agent
 class DQNAgent:
     def __init__(self, state_dim, action_dim, hidden_dim, learning_rate):
@@ -180,6 +169,8 @@ class DQNAgent:
             reward = rewards[i]
             next_state = next_states[i]
             done = dones[i]
+           # print(f"Debug - State Type: {type(state)}, Content: {state}")
+          #  print(f"Debug - Next State Type: {type(next_state)}, Content: {next_state}")
 
             # Handling the state format
             if isinstance(state, tuple) and len(state) == 2:
@@ -214,10 +205,6 @@ class DQNAgent:
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
-
-
-
-
 # Define replay buffer
 class ReplayBuffer:
     def __init__(self, capacity):
@@ -231,12 +218,10 @@ class ReplayBuffer:
 
     def __len__(self):
         return len(self.buffer)
-
 # Main training loop
 def save_checkpoint(state, filename="best_checkpoint.pth.tar"):
     # Save model state to a file
     torch.save(state, filename)
-
 def main():
     # Define paths to your image datasets (modify as needed)
     dataset_paths = [f"/Users/ddayley/Desktop/gas/data/images_copy/{i}" for i in range(0, 10)]
@@ -250,7 +235,7 @@ def main():
 
     agent = DQNAgent(state_dim, action_dim, hidden_dim, learning_rate)
     replay_buffer = ReplayBuffer(1000)
-    num_episodes = 100
+    num_episodes = 300
     batch_size = 32
     best_total_reward = -float('inf')
 
@@ -267,15 +252,17 @@ def main():
             if len(replay_buffer) > batch_size:
                 batch = replay_buffer.sample(batch_size)
                 # Unpack and learn
+                #print(f"Debug - Batch Sample: {batch}")
                 states, actions, rewards, next_states, dones = zip(*batch)
                 agent.learn(states, actions, rewards, next_states, dones)
 
             state = next_state
             total_reward += reward
-
+        print("Best : " + str(total_reward))
         # Check for best model
         if total_reward > best_total_reward:
                 best_total_reward = total_reward
+                print("Saving Checkpoint : " + str(total_reward))
                 save_checkpoint({
                     'episode': episode,
                     'state_dict': agent.model.state_dict(),
@@ -284,6 +271,5 @@ def main():
                 }, filename="best_checkpoint.pth.tar")  # Save as the best_checkpoint
 
         print(f"Episode: {episode}, Total Reward: {total_reward}")
-
 if __name__ == '__main__':
     main()
