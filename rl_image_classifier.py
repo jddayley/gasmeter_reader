@@ -8,23 +8,26 @@ import torchvision.models as models
 from PIL import Image
 from collections import deque
 import numpy as np
+import torch.nn.functional as F
+
 # Define your pre-trained model loading function
 def load_model():
-    model = models.densenet121(pretrained=True)  # Ensure this matches the model used for training
+    model = models.densenet121(pretrained=True)
     num_ftrs = model.classifier.in_features
     model.classifier = nn.Linear(num_ftrs, 10)  # Adjust the number of classes if different
 
-    # Load the state dictionary from the checkpoint, only extracting the model weights
+    # Load the state dictionary from the checkpoint
     checkpoint = torch.load('best_checkpoint.pth.tar')
-    if 'state_dict' in checkpoint:
-        model.load_state_dict(checkpoint['state_dict'])
-    else:
-        model.load_state_dict(checkpoint)  # If the file directly contains the state dict
+    model.load_state_dict(checkpoint['state_dict'])
 
     model.eval()
     return model
 
-# Add ThresholdTransform to your transforms
+
+    model.eval()
+    return model
+
+# Define ThresholdTransform class
 class ThresholdTransform:
     def __init__(self, thr_255):
         self.thr_255 = thr_255
@@ -32,14 +35,15 @@ class ThresholdTransform:
     def __call__(self, img):
         # Convert PIL Image to NumPy array
         img_array = np.array(img)
-        
         # Apply threshold
-        thresholded_array = (img_array > self.thr_255) * 255  # Element-wise comparison
-
+        thresholded_array = (img_array > self.thr_255) * 255
         # Convert back to PIL Image and return
         return Image.fromarray(thresholded_array.astype(np.uint8))
+
+# Define image preprocessing transforms
 def image_transforms(image):
     transform = transforms.Compose([
+        # Modify these transforms as needed for your dataset
         transforms.Resize((224, 224)),
         transforms.Grayscale(num_output_channels=3),
         ThresholdTransform(thr_255=75),
@@ -48,16 +52,17 @@ def image_transforms(image):
     ])
     return transform(image)
 
-# Define actions
+# Define actions for your RL agent
 def apply_action(image, action):
-    # if action == 0:
-    #     return transforms.functional.rotate(image, 25)
-    # elif action == 1:
-    #     return transforms.functional.hflip(image)
-    # # Add other actions based on your original code or new ideas
+    # Define actions (e.g., rotate, flip). Modify as per your task requirements
+    # Example actions:
+    if action == 0:
+        return transforms.functional.rotate(image, 25)
+    elif action == 1:
+        return transforms.functional.hflip(image)
     return image
 
-# Classification function using your pre-trained model
+# Classification function using pre-trained model
 def classify(model, image):
     image = image_transforms(image).float()
     image = image.unsqueeze(0)
@@ -66,33 +71,38 @@ def classify(model, image):
     _, predicted = torch.max(output.data, 1)
     return predicted.item()
 
-# Environment
+# Define RL environment
 class ImageEnvironment:
     def __init__(self, dataset_paths, model):
+        # Load datasets from provided paths
         self.datasets = [self.load_dataset(path) for path in dataset_paths]
         self.current_class = 0
         self.current_image_index = 0
         self.model = model
 
     def load_dataset(self, path):
+        # Load images from a dataset directory
         images = []
         for filename in os.listdir(path):
-            if filename.endswith(".jpg"):  # Assuming JPG format
+            if filename.endswith(".jpg"):  # Modify as per your file types
                 image_path = os.path.join(path, filename)
                 image = Image.open(image_path).convert('RGB')
                 images.append(image)
         return images
 
     def reset(self):
+        # Reset environment to a new state
         self.current_class = (self.current_class + 1) % len(self.datasets)
         self.current_image_index = 0
         return self.get_state()
 
     def get_state(self):
+        # Get current state (image and class)
         image = self.datasets[self.current_class][self.current_image_index]
         return image, self.current_class
 
     def step(self, action):
+        # Apply action and get next state, reward, and done flag
         image = self.datasets[self.current_class][self.current_image_index]
         processed_image = apply_action(image, action)
         prediction = classify(self.model, processed_image)
@@ -101,16 +111,20 @@ class ImageEnvironment:
         done = self.current_image_index == 0
         return self.get_state(), reward, done
 
-# DQN Model
+# Define DQN model
 class DQN(nn.Module):
+    # Define your DQN architecture here
+    # Modify according to your task requirements
     def __init__(self, input_channels, hidden_dim, output_dim):
         super(DQN, self).__init__()
+        # Example layers (modify as needed):
         self.conv1 = nn.Conv2d(input_channels, 32, kernel_size=8, stride=4)
         self.conv2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
         self.fc1 = nn.Linear(64 * 55 * 55, hidden_dim)
         self.fc2 = nn.Linear(hidden_dim, output_dim)
 
     def forward(self, x):
+        # Forward pass through the network
         x = torch.relu(self.conv1(x))
         x = torch.relu(self.conv2(x))
         x = x.view(x.size(0), -1)
@@ -118,39 +132,38 @@ class DQN(nn.Module):
         x = self.fc2(x)
         return x
 
+# Define DQN agent
 class DQNAgent:
     def __init__(self, state_dim, action_dim, hidden_dim, learning_rate):
         self.model = DQN(state_dim, hidden_dim, action_dim)
-        self.action_dim = action_dim  # Store action_dim as an attribute
+        self.action_dim = action_dim
         self.optimizer = optim.Adam(self.model.parameters(), lr=learning_rate)
 
     def select_action(self, state):
-        # Use self.action_dim here
+        # Random action selection for now
+        # Modify to implement more sophisticated policy (e.g., epsilon-greedy)
         return random.randint(0, self.action_dim - 1)
 
     def learn(self, state, action, reward, next_state, done):
-        # Convert everything to tensors
+        # Learning logic (modify as per your RL algorithm)
+        # Convert to tensors
         state = torch.FloatTensor(state)
         next_state = torch.FloatTensor(next_state)
         action = torch.LongTensor(action)
         reward = torch.FloatTensor(reward)
         done = torch.FloatTensor(done)
 
-        # Get current Q estimate
+        # Compute Q values and loss
         q_values = self.model(state)
         current_q_value = q_values.gather(1, action.unsqueeze(1)).squeeze(1)
-
-        # Compute the expected Q values
         next_q_values = self.model(next_state).max(1)[0]
-        expected_q_value = reward + 0.99 * next_q_values * (1 - done)  # 0.99 is the discount factor
-
-        # Compute loss and update the model
+        expected_q_value = reward + 0.99 * next_q_values * (1 - done)  # Discount factor
         loss = F.mse_loss(current_q_value, expected_q_value.detach())
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
 
-# Replay Buffer
+# Define replay buffer
 class ReplayBuffer:
     def __init__(self, capacity):
         self.buffer = deque(maxlen=capacity)
@@ -163,38 +176,28 @@ class ReplayBuffer:
 
     def __len__(self):
         return len(self.buffer)
-def set_device():
-    if torch.cuda.is_available():
-        print("Using CUDA GPU")
-        dev = "cuda:0"
-    elif torch.backends.mps.is_available():
-     #   print("Using Mac GPU")
-        dev = "mps"
-    else:
-        print("Using CPU")
-        dev = "cpu"
+
 # Main training loop
 def save_checkpoint(state, filename="best_checkpoint.pth.tar"):
+    # Save model state to a file
     torch.save(state, filename)
 
 def main():
-    dataset_paths = [f"/Users/ddayley/Desktop/gas/data/images_copy/{i}" for i in range(1, 11)]
+    # Define paths to your image datasets (modify as needed)
+    dataset_paths = [f"path/to/dataset/class{i}" for i in range(1, 11)]
 
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    model = load_model()  
-    model.to(device)
-
+    model = load_model()
     env = ImageEnvironment(dataset_paths, model)
-    state_dim = 3
-    action_dim = 2
+    state_dim = 3  # Modify as per your state representation
+    action_dim = 2  # Modify as per your number of actions
     hidden_dim = 128
     learning_rate = 0.001
-    best_total_reward = -float('inf')
 
     agent = DQNAgent(state_dim, action_dim, hidden_dim, learning_rate)
     replay_buffer = ReplayBuffer(1000)
     num_episodes = 100
     batch_size = 32
+    best_total_reward = -float('inf')
 
     for episode in range(num_episodes):
         state, _ = env.reset()
@@ -208,12 +211,14 @@ def main():
 
             if len(replay_buffer) > batch_size:
                 batch = replay_buffer.sample(batch_size)
-                # Unpack batch and update DQN model
+                # Unpack and learn
+                states, actions, rewards, next_states, dones = zip(*batch)
+                agent.learn(states, actions, rewards, next_states, dones)
 
             state = next_state
             total_reward += reward
 
-        # Save the model if it has improved
+        # Check for best model
         if total_reward > best_total_reward:
             best_total_reward = total_reward
             save_checkpoint({
@@ -223,7 +228,7 @@ def main():
                 'optimizer': agent.optimizer.state_dict(),
             })
 
-        print(f"Episode: {episode}, Total Reward: {total_reward}, Class: {env.current_class}")
+        print(f"Episode: {episode}, Total Reward: {total_reward}")
 
 if __name__ == '__main__':
     main()
