@@ -59,4 +59,4 @@ Deploy the trained model using `gasmeter.py` and `gas_meter_reader.py` for actua
 - **Correction Method**: Corrects discrepancies by replacing the first digit with the first digit from the previous reading and reassessing. This process is repeated for the second and third digits as needed.
 
 ## Next Steps
-- **Using LLMs**: Using LLM to assist in Labeling and Prediction. 
+- **Using RL**: Using Reinforcement Learning to improve Prediction. 
