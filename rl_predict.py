@@ -1,4 +1,3 @@
-
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.transforms as transforms
@@ -7,6 +6,31 @@ import os
 import torch
 import torchvision.models as models
 from torchvision.models import DenseNet121_Weights
+import matplotlib.pyplot as plt
+
+class ThresholdTransform:
+    def __init__(self, threshold):
+        self.threshold = threshold / 255.0
+
+    def __call__(self, img):
+        if isinstance(img, torch.Tensor):
+            return (img > self.threshold).float()
+        else:
+            img_tensor = transforms.ToTensor()(img)
+            return (img_tensor > self.threshold).float()
+
+def transform_image(image_path):
+    transform = transforms.Compose([
+        transforms.Resize((224, 224)),
+        ThresholdTransform(threshold=75),
+        transforms.Grayscale(num_output_channels=3),
+        # Ensure ToTensor is only applied if the input is not a tensor
+        transforms.Lambda(lambda img: img if isinstance(img, torch.Tensor) else transforms.ToTensor()(img)),
+        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+    ])
+    image = Image.open(image_path).convert('RGB')
+    return transform(image).unsqueeze(0)  # Add batch dimension
+
 
 class CustomCNN(nn.Module):
     def __init__(self):
@@ -30,35 +54,26 @@ class CustomCNN(nn.Module):
         x = self.fc2(x)
         return x
 
-# Image transformation
-def transform_image(image_path):
-    transform = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-    ])
-    image = Image.open(image_path).convert('RGB')  # Convert image to RGB
-    image = transform(image).unsqueeze(0)  # Add batch dimension
-    return image
-
-# Function to predict the class of an image
 def predict_image(model, image_path):
     image = transform_image(image_path)
+
+    # Reverting normalization for visualization
+    img_to_show = image.squeeze(0).clone()  # Clone to avoid modifying the original tensor
+    mean = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1)
+    std = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1)
+    img_to_show.mul_(std).add_(mean)  # Revert normalization
+    img_to_show.clamp_(0, 1)  # Clamp values to be between 0 and 1
+
+    plt.imshow(img_to_show.permute(1, 2, 0))
+    plt.title("Transformed Image (After Reverting Normalization)")
+    plt.show()
+
     with torch.no_grad():
         outputs = model(image)
-        _, predicted = torch.max(outputs, 1)
-        return predicted.item()
+        probabilities = F.softmax(outputs, dim=1)
+        predicted_class = probabilities.argmax(1).item()  # Get the predicted class as a Python int
+        return predicted_class  # Return only the predicted class
 
-# Load the model
-#model = load_custom_model('best_checkpoint.pth.tar')
-
-
-
-
-# Predict the class of an image
-# image_path = 'path_to_your_image.jpg'  # Replace with your image path
-# predicted_class = predict_image(model, image_path)
-# print(f"The predicted class for the image is: {predicted_class}")
 def main():
     model = load_custom_model('best_checkpoint.pth.tar')  # Load the model
     
@@ -114,19 +129,3 @@ def load_custom_model(start_from_scratch=True, checkpoint_path='best_checkpoint.
 
 if __name__ == '__main__':
     main()
-
-# Load the original DenseNet model
-    # model = models.densenet121(pretrained=False)
-
-    # # Load your checkpoint
-    # checkpoint = torch.load('best_checkpoint.pth.tar')
-    # model.load_state_dict(checkpoint['state_dict'])
-    # checkpoint = torch.load('best_checkpoint.pth.tar')
-    # # print(checkpoint.keys())
-    # # print(checkpoint['state_dict'].keys())
-    # checkpoint = torch.load('best_checkpoint.pth.tar', map_location=torch.device('cpu'))
-    # print(checkpoint['state_dict'].keys())
-
-# Call the function
-    # flattened_size = find_flattened_size()
-    # print("Calculated Flattened Size:", flattened_size)
