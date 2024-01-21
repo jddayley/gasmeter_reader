@@ -11,6 +11,8 @@ import torchvision.models as models
 import torch.nn as nn 
 import torch.optim as optim
 from torchvision.models import DenseNet121_Weights
+import matplotlib.pyplot as plt
+
 lr = 0.001
 momentum = 0.9
 #weight_decay = 1.0e-4
@@ -99,7 +101,7 @@ def load_model():
     loss_fn = nn.CrossEntropyLoss()
     optimizer = optim.SGD(densenet_model.parameters(),lr=lr, momentum=momentum, weight_decay=weight_decay)
 # Load checkpoint if exists
-    checkpoint_path = "best_checkpoint.pth.tar"
+    checkpoint_path = "model_best.pth.tar"
     checkpoint = torch.load(checkpoint_path, map_location="cpu")
     densenet_model.load_state_dict(checkpoint['state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer'])
@@ -134,28 +136,29 @@ def set_device():
         dev = "cpu"
     return torch.device(dev)
 def classify(image_path):
-    
     image = Image.open(image_path).convert('RGB')
+    # Keep the original image for plotting
+    original_image = image.copy()
     image = image_transforms(image).float()
     image = image.unsqueeze(0)
-    #model.to("cpu")
     output = densenet_model(image)
-    max_elements, predicated = torch.max(output.data, 1)
-    #del model
-    #print(max_elements)
-    #print("Debug-Predict: " + classes[predicated.item()] )
-    return str(classes[predicated.item()])
+    _, predicted = torch.max(output.data, 1)
+    # Return both the prediction and the original image
+    return classes[predicted.item()], original_image
+
 
 def main():
-    
     for i in range(10):
-       # print(i, end=", ") # prints: 0, 1, 2, 3, 4, 
-        path = "/Users/ddayley/Desktop/gas/data/images/" + str(i)
+        path = "/Users/ddayley/Desktop/gas/data/images_copy/" + str(i)
         files = os.listdir(path)
         for file in files:
             if file != ".DS_Store":
-                guess = classify(os.path.join(path, file))  # Pass 'device' to the function
-                if (str(i) != str(guess)):
+                guess, original_image = classify(os.path.join(path, file))  # Now returns original image as well
+                if str(i) != guess:
                     print(str(i) + " " + file + " Debug-Predict: " + guess)
+                    # Display the original image
+                    plt.imshow(original_image)
+                    plt.title("Failed Image: Expected {}, Predicted {}".format(i, guess))
+                    plt.show()
 if __name__ == '__main__':
     main()
