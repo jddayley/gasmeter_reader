@@ -12,82 +12,115 @@ import torch.nn.functional as F
 from torchvision.models import DenseNet121_Weights
 
 # Define your pre-trained model loading function
-def load_model(start_from_scratch=True, checkpoint_path='best_checkpoint.pth.tar'):
+def load_model(start_from_scratch=True, checkpoint_path='best_checkpoint.pth.tar', device=None):
     # Choose whether to start from scratch or load the checkpoint
     if start_from_scratch:
-        # Start training from scratch
         model = models.densenet121(weights=DenseNet121_Weights.DEFAULT)
         num_ftrs = model.classifier.in_features
         model.classifier = nn.Linear(num_ftrs, 10)  # Adjust the number of classes if different
     else:
         # Load the existing checkpoint
         if os.path.exists(checkpoint_path):
-            checkpoint = torch.load(checkpoint_path)
+            checkpoint = torch.load(checkpoint_path, map_location=device)
             model = models.densenet121(weights=DenseNet121_Weights.DEFAULT)
             model.load_state_dict(checkpoint['state_dict'])
         else:
-            # Handle the case where the checkpoint file doesn't exist
             print(f"Checkpoint file '{checkpoint_path}' not found. Starting from scratch.")
             model = models.densenet121(weights=DenseNet121_Weights.DEFAULT)
             num_ftrs = model.classifier.in_features
             model.classifier = nn.Linear(num_ftrs, 10)  # Adjust the number of classes if different
 
-    model.eval()
+    model = model.to(device)  # Move the model to the appropriate device
     return model
-# Define ThresholdTransform class
+
 class ThresholdTransform:
-    def __init__(self, thr_255):
-        self.thr_255 = thr_255
+    def __init__(self, threshold):
+        self.threshold = threshold
 
     def __call__(self, img):
-        # Convert PIL Image to NumPy array
-        img_array = np.array(img)
-        # Apply threshold
-        thresholded_array = (img_array > self.thr_255) * 255
-        # Convert back to PIL Image and return
-        return Image.fromarray(thresholded_array.astype(np.uint8))
-# Define image preprocessing transforms
-def image_transforms(state):
-    if isinstance(state, tuple) and len(state) == 2:
-        image, _ = state
-    elif isinstance(state, Image.Image):
-        image = state
-    else:
-        raise ValueError("Unsupported input type for image_transforms")
+        # No need to convert to tensor, it should already be one
+        # Check if the input is a tensor
+        if not isinstance(img, torch.Tensor):
+            raise TypeError(f"Input should be a torch.Tensor. Got {type(img)}")
 
+        # Visualize before thresholding
+       # self.visualize_tensor(img, title="Before Thresholding")
+
+        # Apply thresholding
+        thresholded_tensor = (img > self.threshold / 255.0).float()
+
+        # Visualize after thresholding
+        #self.visualize_tensor(thresholded_tensor, title="After Thresholding")
+        return thresholded_tensor
+
+    def visualize_tensor(self, tensor, title):
+        plt.figure()
+        # Assuming the tensor is in the range [0, 1]
+        plt.imshow(tensor.squeeze().permute(1, 2, 0), cmap='gray' if tensor.size(0) == 1 else None)
+        plt.title(title)
+        plt.axis('off')
+        plt.show()
+
+def image_transforms(image):
     transform = transforms.Compose([
         transforms.Resize((224, 224)),
         transforms.Grayscale(num_output_channels=3),
-        ThresholdTransform(thr_255=75),
-        transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        transforms.ToTensor(),  # Converts image to tensor and scales it to [0, 1]
+        ThresholdTransform(threshold=75),  # Apply thresholding on the tensor
+        # Add normalization if needed
     ])
-    return transform(image).float()
+    transformed_image = transform(image)
+
+    # Visualize the final transformed image
+    # plt.figure()
+    # plt.imshow(transformed_image.squeeze(0).permute(1, 2, 0), cmap='gray')
+    # plt.title("Final Transformed Image")
+    # plt.axis('off')
+    # plt.show()
+
+    return transformed_image
+
+
+
+
 # Define actions for your RL agent
 def apply_action(image, action):
     # Define actions (e.g., rotate, flip). Modify as per your task requirements
     # Example actions:
-    if action == 0:
-        return transforms.functional.rotate(image, 25)
-    elif action == 1:
-        return transforms.functional.hflip(image)
+    # if action == 0:
+    #     return transforms.functional.rotate(image, 25)
+    # elif action == 1:
+    #     return transforms.functional.hflip(image)
     return image
 # Classification function using pre-trained model
-def classify(model, image):
-    image = image_transforms(image).float()
-    image = image.unsqueeze(0)
+# def classify(model, image, device):
+#     image = image_transforms(image).float().to(device)
+#     image = image.unsqueeze(0)
+#     with torch.no_grad():
+#         output = model(image)
+#     _, predicted = torch.max(output.data, 1)
+#     return predicted.item()
+import matplotlib.pyplot as plt
+
+# Classification function using pre-trained model with visualization
+def classify(model, image, device):
+    transformed_image = image_transforms(image).to(device)
+    transformed_image = transformed_image.unsqueeze(0) if transformed_image.dim() == 3 else transformed_image
+
     with torch.no_grad():
-        output = model(image)
+        output = model(transformed_image)
     _, predicted = torch.max(output.data, 1)
     return predicted.item()
+
+
 # Define RL environment
 class ImageEnvironment:
-    def __init__(self, dataset_paths, model):
-        # Load datasets from provided paths
+    def __init__(self, dataset_paths, model, device):  # Add 'device' as an argument
         self.datasets = [self.load_dataset(path) for path in dataset_paths]
         self.current_class = 0
         self.current_image_index = 0
         self.model = model
+        self.device = device 
 
     def load_dataset(self, path):
         # Load images from a dataset directory
@@ -117,7 +150,7 @@ class ImageEnvironment:
         # Apply action and get next state, reward, and done flag
         image = self.datasets[self.current_class][self.current_image_index]
         processed_image = apply_action(image, action)
-        prediction = classify(self.model, processed_image)
+        prediction = classify(self.model, processed_image, self.device)  # Pass the device here     
         reward = 1 if prediction == self.current_class else -1
         self.current_image_index = (self.current_image_index + 1) % len(self.datasets[self.current_class])
         done = self.current_image_index == 0
@@ -152,10 +185,11 @@ class DQN(nn.Module):
         return x
 # Define DQN agent
 class DQNAgent:
-    def __init__(self, state_dim, action_dim, hidden_dim, learning_rate):
-        self.model = DQN(state_dim, hidden_dim, action_dim)
+    def __init__(self, state_dim, action_dim, hidden_dim, learning_rate, device):
+        self.model = DQN(state_dim, hidden_dim, action_dim).to(device)
         self.action_dim = action_dim
         self.optimizer = optim.Adam(self.model.parameters(), lr=learning_rate)
+        self.device = device 
 
     def select_action(self, state):
         # Random action selection for now
@@ -177,6 +211,7 @@ class DQNAgent:
                 state_image, _ = state
             elif isinstance(state, Image.Image):
                 state_image = state
+                
             else:
                 raise ValueError("Unsupported input type for state")
 
@@ -188,13 +223,14 @@ class DQNAgent:
             else:
                 raise ValueError("Unsupported input type for next state")
 
-            # Rest of the learning logic
-            state_image = image_transforms(state_image).unsqueeze(0)
-            next_state_image = image_transforms(next_state_image).unsqueeze(0)
 
-            action = torch.LongTensor([action])
-            reward = torch.FloatTensor([reward])
-            done = torch.FloatTensor([done])
+        # Transform and move images to device
+            state_image = image_transforms(state_image).unsqueeze(0).to(self.device)
+            next_state_image = image_transforms(next_state_image).unsqueeze(0).to(self.device)
+
+            action = torch.LongTensor([action]).to(self.device)
+            reward = torch.FloatTensor([reward]).to(self.device)
+            done = torch.FloatTensor([done]).to(self.device)
 
             # Compute Q values and loss
             q_values = self.model(state_image)
@@ -222,18 +258,33 @@ class ReplayBuffer:
 def save_checkpoint(state, filename="best_checkpoint.pth.tar"):
     # Save model state to a file
     torch.save(state, filename)
+def set_device():
+    if torch.cuda.is_available():
+        print("Using CUDA GPU")
+        device = torch.device("cuda:0")
+    elif torch.backends.mps.is_available():
+        print("Using Mac GPU")
+        device = torch.device("mps")
+    else:
+        print("Using CPU")
+        device = torch.device("cpu")
+    return device
+
 def main():
+    device = set_device()
+    model = load_model(device=device)
+    # ... rest of your code ...
+
     # Define paths to your image datasets (modify as needed)
     dataset_paths = [f"/Users/ddayley/Desktop/gas/data/images_copy/{i}" for i in range(0, 10)]
-
-    model = load_model()
-    env = ImageEnvironment(dataset_paths, model)
+  
+    env = ImageEnvironment(dataset_paths, model, device)
     state_dim = 3  # Modify as per your state representation
     action_dim = 2  # Modify as per your number of actions
     hidden_dim = 128
     learning_rate = 0.001
 
-    agent = DQNAgent(state_dim, action_dim, hidden_dim, learning_rate)
+    agent = DQNAgent(state_dim, action_dim, hidden_dim, learning_rate, device)
     replay_buffer = ReplayBuffer(1000)
     num_episodes = 300
     batch_size = 32
