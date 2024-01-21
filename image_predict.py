@@ -144,8 +144,8 @@ def classify(image_path):
     output = densenet_model(image)
     _, predicted = torch.max(output.data, 1)
     # Return both the prediction and the original image
-    return classes[predicted.item()], original_image
-
+    #return classes[predicted.item()], original_image
+    return classes[predicted.item()]
 
 def main():
     for i in range(10):
