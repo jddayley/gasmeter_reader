@@ -100,7 +100,7 @@ class EarlyStopping:
             'state_dict': model.state_dict(),
             'best_loss': val_loss,
             'optimizer': optimizer.state_dict(),
-        }, filename='model_best.pth.tar')
+        }, filename='best_checkpoint.pth.tar')
 
     def __call__(self, val_loss, model):
         score = -val_loss
@@ -234,7 +234,7 @@ def train_model(model, train_loader, valid_loader, criterion, optimizer, schedul
                 'state_dict': model.state_dict(),
                 'best_loss': valid_loss,
                 'optimizer': optimizer.state_dict(),
-            }, filename='model_best.pth.tar')
+            }, filename='best_checkpoint.pth.tar')
             early_stopping.save_checkpoint(valid_loss, model)  # Update best loss within early stopping
 
  
