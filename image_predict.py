@@ -101,8 +101,8 @@ def load_model():
     loss_fn = nn.CrossEntropyLoss()
     optimizer = optim.SGD(densenet_model.parameters(),lr=lr, momentum=momentum, weight_decay=weight_decay)
 # Load checkpoint if exists
-    checkpoint_path = "model_best.pth.tar"
-    checkpoint = torch.load(checkpoint_path, map_location="cpu")
+    checkpoint_path = "best_checkpoint.pth.tar"
+    checkpoint = torch.load(checkpoint_path, map_location="cpu" )
     densenet_model.load_state_dict(checkpoint['state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer'])
 #mean = [0.4868, 0.4868, 0.4868]
@@ -123,7 +123,7 @@ def load_model():
     return densenet_model,image_transforms
 
 densenet_model, image_transforms = load_model()
-model = densenet_model.eval()
+#model = densenet_model.eval()
 def set_device():
     if torch.cuda.is_available():
         print("Using CUDA GPU")
@@ -144,8 +144,8 @@ def classify(image_path):
     output = densenet_model(image)
     _, predicted = torch.max(output.data, 1)
     # Return both the prediction and the original image
-    #return classes[predicted.item()], original_image
-    return classes[predicted.item()]
+    return classes[predicted.item()], original_image
+
 
 def main():
     for i in range(10):
