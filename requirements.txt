@@ -2,3 +2,7 @@ opencv-python
 numpy
 paho-mqtt
 bluepy
+mariadb
+torchvision
+matplotlib
+
