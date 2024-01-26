@@ -1,164 +1,145 @@
-import torchvision
 import torch
-import torchvision.transforms as transforms
+import torchvision
+from torchvision import transforms, datasets
+from torch.utils.data import DataLoader
 import PIL.Image as Image
-import cv2 
 import os
 import sys
-from threshtransform import *
-from globals import *
+from threshtransform import ThresholdTransform  # Ensure this is correctly implemented
 import torchvision.models as models
-import torch.nn as nn 
-import torch.optim as optim
-from torchvision.models import DenseNet121_Weights
+import torch.nn as nn
 import matplotlib.pyplot as plt
 
-lr = 0.001
-momentum = 0.9
-#weight_decay = 1.0e-4
-weight_decay = .003
-batchsize = 32
-#batchsize_valid = 64
-#start_epoch = 0
-epochs      = 50
-mean = [0.485, 0.456, 0.406]
-std = [0.229, 0.224, 0.225]
-classes = [
-        "0",
-        "1",
-        "2",
-        "3",
-        "4",
-        "5",
-        "6",
-        '7',
-        "8",
-        "9"
-        ]
-def set_device():
-    if torch.cuda.is_available():
-        print ("Using CUDA GPU")
-        dev = "cuda:0"
-    elif torch.backends.mps.is_available():
-        print ("Using Mac GPU")
-        dev = "mps"
-    else:
-        print ("Using CPU")
-        dev = "cpu"
-    return torch.device(dev)
-def load_model():
-    train_transforms =  transforms.Compose([transforms.Resize((224,224)),
-    transforms.ToTensor()
-    ])
-    train_dataset = torchvision.datasets.ImageFolder( root= train_dataset_path, transform=train_transforms)
-    train_loader = torch.utils.data.DataLoader (dataset= train_dataset, batch_size=batchsize, shuffle=False)
-    mean, std = get_mean_and_std(train_loader)
-    print ("Mean: " )
-    print(mean)
-    print ("Std")
-    print(std)
-#mean = [0.4868, 0.4868, 0.4868]
-#std = [0.1944, 0.1944, 0.1944]
-    train_transforms = transforms.Compose([
-    transforms.Resize((224,224)),
-    #transforms.RandomHorizontalFlip(),
-    transforms.Grayscale(num_output_channels=3),
-    #transforms.RandomRotation(10),
-    transforms.ToTensor(),
-    ThresholdTransform(thr_255=75),
-    transforms.Normalize(torch.Tensor(mean), torch.Tensor(std))
-    # transforms.Normalize((0.5), (0.5))
-    ])
-    test_transforms = transforms.Compose([
-    transforms.Resize((224,224)),
-    transforms.Grayscale(num_output_channels=3),
-    transforms.ToTensor(),
-    ThresholdTransform(thr_255=75),
-    # transforms.Normalize((0.5), (0.5))
-    transforms.Normalize(torch.Tensor(mean), torch.Tensor(std))
-    ])
-#print("Setting up model...")
-#     resnet50_model = models.resnet50(pretrained=True)
-# #resnet50_model = models.resnet50()
-# #resnet50_model = models.resnet50(weights='ResNet50_Weights.DEFAULT')
-#     num_ftrs = resnet50_model.fc.in_features
-    num_classes = 10
-#     resnet50_model.fc = nn.Linear(num_ftrs,number_of_classes)
-    weights = DenseNet121_Weights.DEFAULT  # or choose another variant if needed
-    densenet_model = models.densenet121(weights=weights)
+# Calculate mean and standard deviation
+def calculate_mean_std(loader):
+    mean = 0.
+    std = 0.
+    total_images_count = 0
+    for images, _ in loader:
+        images = images.view(images.size(0), images.size(1), -1)
+        mean += images.mean(2).sum(0)
+        std += images.std(2).sum(0)
+        total_images_count += 1
+    mean /= total_images_count
+    std /= total_images_count
+    return mean.numpy(), std.numpy()  # Convert to numpy array for later use in Normalize
 
+# Configuration
+config = {
+    "checkpoint_path": "checkpoints/checkpoint.pth.tar",
+    "train_dataset_path": "data/images_copy",
+    "num_classes": 10,
+    "device": "auto",
+    "batch_size": 32,
+    "classes": [str(i) for i in range(10)],
+}
 
-    # Replace the classifier
-    num_ftrs = densenet_model.classifier.in_features
-    densenet_model.classifier = nn.Linear(num_ftrs, num_classes)  # Adjust 'num_classes' to your dataset
-
-    # Device Configuration and Model Transfer
-    device = set_device()
-    #densenet_model.to(device)
-  
-#device = set_device()
-#resnet50_model = resnet50_model.to(device)
-    loss_fn = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(densenet_model.parameters(),lr=lr, momentum=momentum, weight_decay=weight_decay)
-# Load checkpoint if exists
-    checkpoint_path = "best_checkpoint.pth.tar"
-    checkpoint = torch.load(checkpoint_path, map_location="cpu" )
-    densenet_model.load_state_dict(checkpoint['state_dict'])
-    optimizer.load_state_dict(checkpoint['optimizer'])
-#mean = [0.4868, 0.4868, 0.4868]
-#std = [0.1944, 0.1944, 0.1944]
-    densenet_model.eval()
-
-
-
-    image_transforms = transforms.Compose([
-    transforms.Grayscale(num_output_channels=3),
-    transforms.Resize((224,224)),
-    transforms.ToTensor(),
-    ThresholdTransform(thr_255=75),
-    #transforms.Normalize((0.5), (0.5))
-    transforms.Normalize(torch.Tensor(mean), torch.Tensor(std))
-])
-    
-    return densenet_model,image_transforms
-
-densenet_model, image_transforms = load_model()
-#model = densenet_model.eval()
+# Set device based on availability and preference
 def set_device():
     if torch.cuda.is_available():
         print("Using CUDA GPU")
-        dev = "cuda:0"
+        return torch.device("cuda")
     elif torch.backends.mps.is_available():
-     #   print("Using Mac GPU")
-        dev = "mps"
+        print("Using Mac GPU")
+        return torch.device("mps")
     else:
         print("Using CPU")
-        dev = "cpu"
-    return torch.device(dev)
-def classify(image_path):
-    image = Image.open(image_path).convert('RGB')
-    # Keep the original image for plotting
-    original_image = image.copy()
-    image = image_transforms(image).float()
-    image = image.unsqueeze(0)
-    output = densenet_model(image)
-    _, predicted = torch.max(output.data, 1)
-    # Return both the prediction and the original image
-    return classes[predicted.item()], original_image
+        return torch.device("cpu")
 
+# Load the model from checkpoint
+def load_model(checkpoint_path, device):
+    model = models.densenet121(pretrained=False)  # Initialize model
+    num_ftrs = model.classifier.in_features
+    model.classifier = nn.Linear(num_ftrs, config["num_classes"])
+    model.to(device)
+
+    if os.path.isfile(checkpoint_path):
+        checkpoint = torch.load(checkpoint_path, map_location=device)
+        if 'model_state' in checkpoint:
+            model.load_state_dict(checkpoint['model_state'])
+        elif 'state_dict' in checkpoint:
+            model.load_state_dict(checkpoint['state_dict'])
+        else:
+            model.load_state_dict(checkpoint)
+        print("Model loaded successfully from checkpoint.")
+    else:
+        print(f"Checkpoint not found at {checkpoint_path}", file=sys.stderr)
+        sys.exit(1)
+
+    model.eval()
+    return model
+
+# Update this function to accept mean and std as parameters
+def get_transforms(mean, std):
+    return transforms.Compose([
+        transforms.Grayscale(num_output_channels=3),
+        transforms.Resize((224, 224)),
+        transforms.ToTensor(),
+        ThresholdTransform(thr_255=75),
+        transforms.Normalize(mean=mean, std=std)
+    ])
+def gas_classify(image_path):
+    # Set up device
+    device = set_device()
+    
+    # Load the model
+    model = load_model(config["checkpoint_path"], device)
+    
+    # Prepare the loader for mean/std calculation (if not already calculated)
+    global mean, std  # Use global variables to avoid recalculating
+    try:
+        _ = mean + std  # Try to use existing mean and std
+    except NameError:  # Calculate if not already done
+        initial_transforms = transforms.Compose([transforms.Resize((224, 224)), transforms.ToTensor()])
+        initial_dataset = datasets.ImageFolder(root=config["train_dataset_path"], transform=initial_transforms)
+        initial_loader = DataLoader(initial_dataset, batch_size=config["batch_size"], shuffle=False)
+        mean, std = calculate_mean_std(initial_loader)
+    
+    # Get image transforms using the calculated mean and std
+    image_transforms = get_transforms(mean, std)
+    
+    # Classify the image
+    predicted_class, original_image = classify(model, image_path, image_transforms, device)  
+    return predicted_class, original_image
+
+# Classify a given image
+def classify(model, image_path, transforms, device):
+    image = Image.open(image_path).convert('RGB')
+    transformed_image = transforms(image).unsqueeze(0).to(device)
+    
+    with torch.no_grad():
+        output = model(transformed_image)
+        _, predicted = torch.max(output, 1)
+        predicted_class = config["classes"][predicted.item()]
+    
+    return predicted_class, image  # Return PIL image for plotting
 
 def main():
-    for i in range(10):
-        path = "/Users/ddayley/Desktop/gas/data/images_copy/" + str(i)
-        files = os.listdir(path)
+    device = set_device()
+    
+    # Prepare initial loader for mean/std calculation
+    initial_transforms = transforms.Compose([transforms.Resize((224, 224)), transforms.ToTensor()])
+    initial_dataset = datasets.ImageFolder(root=config["train_dataset_path"], transform=initial_transforms)
+    initial_loader = DataLoader(initial_dataset, batch_size=config["batch_size"], shuffle=False)
+    mean, std = calculate_mean_std(initial_loader)
+    
+    model = load_model(config["checkpoint_path"], device)
+    image_transforms = get_transforms(mean, std)
+    
+    test_directory = config["train_dataset_path"]
+    for i in range(len(config["classes"])):
+        path = os.path.join(test_directory, str(i))
+        if not os.path.isdir(path):
+            continue
+        files = [f for f in os.listdir(path) if not f.startswith('.')]
         for file in files:
-            if file != ".DS_Store":
-                guess, original_image = classify(os.path.join(path, file))  # Now returns original image as well
-                if str(i) != guess:
-                    print(str(i) + " " + file + " Debug-Predict: " + guess)
-                    # Display the original image
-                    plt.imshow(original_image)
-                    plt.title("Failed Image: Expected {}, Predicted {}".format(i, guess))
-                    plt.show()
+            image_path = os.path.join(path, file)
+            predicted_class, original_image = classify(model, image_path, image_transforms, device)
+            if str(i) != predicted_class:
+                print(f"Image: {file}, Predicted class: {predicted_class}")
+                plt.imshow(original_image)
+                plt.title(f"Class: {i} - Predicted: {predicted_class}")
+                plt.show()
+
 if __name__ == '__main__':
     main()
